@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'consumer_dash.dart'; // Assuming your ConsumerApp is in this file
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -11,33 +12,27 @@ class LoginPage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: SingleChildScrollView(
-            // Added to prevent overflow on smaller screens
             child: Center(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 80),
-                  // Title
                   const Text(
                     'Log In or Sign Up',
                     style: TextStyle(
-                      fontSize: 26, // Adjusted font size
+                      fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 25), // Increased spacing
-
-                  // Logo
+                  const SizedBox(height: 25),
                   const Icon(
                     Icons.restaurant_rounded,
-                    size: 64, // Slightly reduced icon size for better spacing
+                    size: 64,
                     color: Color.fromARGB(255, 63, 161, 63),
                   ),
-                  const SizedBox(height: 35), // Reduced space
-
-                  // Toggle buttons for Restaurant and Consumer
+                  const SizedBox(height: 35),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -46,7 +41,7 @@ class LoginPage extends StatelessWidget {
                           const Text(
                             'Restaurant',
                             style: TextStyle(
-                              fontSize: 16, // Adjusted text size
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
@@ -54,12 +49,12 @@ class LoginPage extends StatelessWidget {
                           Container(
                             margin: const EdgeInsets.only(top: 5),
                             height: 2,
-                            width: 80, // Adjusted width for better fit
+                            width: 80,
                             color: Colors.black,
                           ),
                         ],
                       ),
-                      const SizedBox(width: 20), // Reduced spacing
+                      const SizedBox(width: 20),
                       Column(
                         children: [
                           const Text(
@@ -73,17 +68,14 @@ class LoginPage extends StatelessWidget {
                           Container(
                             margin: const EdgeInsets.only(top: 5),
                             height: 2,
-                            width: 80, // Adjusted width for better fit
+                            width: 80,
                             color: Colors.black,
                           ),
                         ],
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 40), // Reduced height to adjust layout
-
-                  // Email TextField
+                  const SizedBox(height: 40),
                   TextField(
                     decoration: InputDecoration(
                       labelText: 'Email',
@@ -92,13 +84,10 @@ class LoginPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 16), // Adjusted padding for better UX
+                          vertical: 12, horizontal: 16),
                     ),
                   ),
-                  const SizedBox(height: 15), // Adjusted spacing
-
-                  // Password TextField
+                  const SizedBox(height: 15),
                   TextField(
                     obscureText: true,
                     decoration: InputDecoration(
@@ -108,13 +97,10 @@ class LoginPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 16), // Adjusted padding for consistency
+                          vertical: 12, horizontal: 16),
                     ),
                   ),
-                  const SizedBox(height: 35), // Adjusted spacing
-
-                  // Social Media Icons
+                  const SizedBox(height: 35),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -124,34 +110,37 @@ class LoginPage extends StatelessWidget {
                         },
                         child: Image.asset(
                           'assets/images/google_logo.png',
-                          height: 36, // Adjusted size for better alignment
+                          height: 36,
                         ),
                       ),
-                      const SizedBox(width: 25), // Reduced spacing
+                      const SizedBox(width: 25),
                       GestureDetector(
                         onTap: () {
                           // Apple sign-in logic
                         },
                         child: Image.asset(
                           'assets/images/apple_logo.png',
-                          height: 36, // Adjusted size for consistency
+                          height: 36,
                         ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 25), // Increased spacing for clarity
-
-                  // Continue Button
+                  const SizedBox(height: 25),
                   ElevatedButton(
                     onPressed: () {
-                      // Sign in logic here
+                      // Navigate to ConsumerApp page on continue button press
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const ConsumerApp(), // Navigates to Consumer dashboard
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00B200),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 125.0,
-                          vertical: 16), // Adjusted button size
+                          horizontal: 125.0, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -159,18 +148,14 @@ class LoginPage extends StatelessWidget {
                     child: const Text(
                       'Continue',
                       style: TextStyle(
-                        fontSize: 16, // Adjusted font size for consistency
+                        fontSize: 16,
                         color: Colors.white,
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 20), // Adjusted spacing
-
-                  // Terms and Privacy Policy
+                  const SizedBox(height: 20),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0), // Padding for long text
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
                       'By continuing, you agree to Green Table\'s Terms of Service and acknowledge Noble\'s Privacy Policy.',
                       style: TextStyle(
@@ -180,7 +165,7 @@ class LoginPage extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  const SizedBox(height: 10), // Slight padding for readability
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
