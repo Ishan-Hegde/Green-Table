@@ -1,6 +1,7 @@
 // ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors
 
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 class ConsumerApp extends StatefulWidget {
   const ConsumerApp({super.key});
@@ -37,7 +38,6 @@ class _ConsumerAppState extends State<ConsumerApp> {
   }
 
   // Toggle dark mode
-  // Toggle dark mode
   void _toggleDarkMode() {
     setState(() {
       isDarkMode = !isDarkMode; // Toggle dark mode
@@ -70,6 +70,8 @@ class _ConsumerAppState extends State<ConsumerApp> {
       home: Scaffold(
         appBar: AppBar(
           title: const Text('FooD for GooD'),
+          centerTitle: true,
+          shadowColor: Colors.blueAccent,
           actions: [
             IconButton(
               icon: const Icon(Icons.notifications),
@@ -102,7 +104,8 @@ class _ConsumerAppState extends State<ConsumerApp> {
             ),
           ],
           currentIndex: _selectedIndex,
-          selectedItemColor: Colors.greenAccent,
+          selectedItemColor:
+              isDarkMode ? Colors.greenAccent : const Color(0xFF00B200),
           selectedFontSize: 16,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           selectedIconTheme: const IconThemeData(size: 26),
@@ -143,18 +146,66 @@ class FoodForGoodPage extends StatefulWidget {
 
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
   final List<Map<String, String>> _restaurants = [
-    {'name': 'Pizzeria', 'items': '10 items'},
-    {'name': 'Sushi Place', 'items': '5 items'},
-    {'name': 'Burger Joint', 'items': '8 items'},
-    {'name': 'BBQ Nation', 'items': '12 items'},
-    {'name': 'Taco Stand', 'items': '7 items'},
-    {'name': 'Pasta House', 'items': '9 items'},
-    {'name': 'Burger King', 'items': '4 items'},
-    {'name': 'McDonalds', 'items': '15 items'},
-    {'name': 'KFC', 'items': '6 items'},
-    {'name': 'TWC', 'items': '1 items'},
-    {'name': 'Starbucks', 'items': '9 items'},
-    {'name': 'Tunga International', 'items': '3 items'},
+    {
+      'name': 'Pizzeria',
+      'items': '10 items',
+      'description': 'Delicious pizza with fresh ingredients.'
+    },
+    {
+      'name': 'Sushi Place',
+      'items': '5 items',
+      'description': 'Authentic Japanese sushi with a modern twist.'
+    },
+    {
+      'name': 'Burger Joint',
+      'items': '8 items',
+      'description': 'Juicy burgers made to order.'
+    },
+    {
+      'name': 'BBQ Nation',
+      'items': '12 items',
+      'description': 'Mouth-watering BBQ and grilled items.'
+    },
+    {
+      'name': 'Taco Stand',
+      'items': '7 items',
+      'description': 'Authentic Mexican tacos, freshly made.'
+    },
+    {
+      'name': 'Pasta House',
+      'items': '9 items',
+      'description': 'Homemade pasta with various sauces.'
+    },
+    {
+      'name': 'Burger King',
+      'items': '4 items',
+      'description': 'Your favorite fast food chain burgers.'
+    },
+    {
+      'name': 'McDonalds',
+      'items': '15 items',
+      'description': 'Classic fast food, known worldwide.'
+    },
+    {
+      'name': 'KFC',
+      'items': '6 items',
+      'description': 'Fried chicken made with 11 herbs and spices.'
+    },
+    {
+      'name': 'TWC',
+      'items': '1 items',
+      'description': 'A local favorite with fresh daily offerings.'
+    },
+    {
+      'name': 'Starbucks',
+      'items': '9 items',
+      'description': 'Coffeehouse chain known for its signature drinks.'
+    },
+    {
+      'name': 'Tunga International',
+      'items': '3 items',
+      'description': 'Fine dining with a mix of Indian and global cuisines.'
+    },
   ];
 
   List<Map<String, String>> _filteredRestaurants = [];
@@ -251,12 +302,69 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                             : Colors.grey[800], // Adjust subtitle color
                       ),
                     ),
+                    onTap: () {
+                      // Navigate to restaurant detail page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RestaurantDetailPage(
+                            restaurant: restaurant, // Pass restaurant data
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Page to show restaurant details
+class RestaurantDetailPage extends StatelessWidget {
+  final Map<String, String> restaurant;
+
+  const RestaurantDetailPage({required this.restaurant});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(restaurant['name']!),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              restaurant['name']!,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              restaurant['description']!,
+              style: const TextStyle(
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Items available: ${restaurant['items']}',
+              style: const TextStyle(
+                fontSize: 18,
+                color: Color(0xFF00B200),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -292,13 +400,17 @@ class AvailablePickupsPage extends StatelessWidget {
   }
 }
 
-// Page 3: Past Orders
+// Page 3: Past Orders with Download Invoice Option
 class PastOrdersPage extends StatelessWidget {
-  final List<Map<String, String>> pastOrders = [
-    {'date': '2023-09-01', 'items': 'Pizza, Burger', 'status': 'Completed'},
-    {'date': '2023-09-05', 'items': 'Sushi, Taco', 'status': 'Completed'},
-    {'date': '2023-09-10', 'items': 'Pasta', 'status': 'Completed'},
-  ];
+  final List<Map<String, String>> pastOrders = List.generate(5, (index) {
+    return {
+      'number': (100000 + Random().nextInt(900000))
+          .toString(), // Generate a random 6-digit number
+      'date': '2023-09-${index + 1}',
+      'items': index % 2 == 0 ? 'Pizza, Burger' : 'Sushi, Taco',
+      'status': 'Completed',
+    };
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -310,12 +422,80 @@ class PastOrdersPage extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           elevation: 4,
           child: ListTile(
-            title: Text('Order on ${order['date']}'),
-            subtitle: Text('Items: ${order['items']}'),
-            trailing: Text(order['status']!),
+            title: Text('Order No.: ${order['number']}'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Date: ${order['date']}'),
+                Text('Items: ${order['items']}'),
+                Text('Status: ${order['status']}'),
+              ],
+            ),
+            trailing: Icon(
+              Icons.check_circle_outline,
+              color: order['status'] == 'Completed'
+                  ? const Color(0xFF00B200)
+                  : Colors.red,
+            ),
+            onTap: () => _showOrderDetails(context, order),
           ),
         );
       },
     );
+  }
+
+  // Function to show the bottom sheet with download option
+  void _showOrderDetails(BuildContext context, Map<String, String> order) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Order Details',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Text('Order No.: ${order['number']}'),
+              Text('Date: ${order['date']}'),
+              Text('Items: ${order['items']}'),
+              Text('Status: ${order['status']}'),
+              const SizedBox(height: 20),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _downloadInvoice(context, order);
+                  },
+                  icon: const Icon(Icons.download),
+                  label: const Text('Download Invoice'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 16),
+                    backgroundColor: const Color(0xFF00B200),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Function to simulate invoice download
+  void _downloadInvoice(BuildContext context, Map<String, String> order) {
+    Navigator.pop(context); // Close the bottom sheet
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            "Invoice for order No. ${order['number']} is being downloaded."),
+      ),
+    );
+    // You can add actual file download logic here using a package like 'flutter_downloader' or 'pdf'.
   }
 }
