@@ -37,6 +37,7 @@ class _ConsumerAppState extends State<ConsumerApp> {
   }
 
   // Toggle dark mode
+  // Toggle dark mode
   void _toggleDarkMode() {
     setState(() {
       isDarkMode = !isDarkMode; // Toggle dark mode
@@ -52,7 +53,8 @@ class _ConsumerAppState extends State<ConsumerApp> {
         primaryColor: primaryGreen,
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.green,
+          backgroundColor: Color(0xFF00B200),
+          shadowColor: Colors.blueAccent,
         ),
       ),
       darkTheme: ThemeData(
@@ -60,59 +62,25 @@ class _ConsumerAppState extends State<ConsumerApp> {
         primaryColor: primaryGreen,
         scaffoldBackgroundColor: Colors.black,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black,
+          backgroundColor: Color(0xFF00B200),
+          shadowColor: Colors.blueAccent,
         ),
       ),
       debugShowCheckedModeBanner: false,
       home: Scaffold(
+        appBar: AppBar(
+          title: const Text('FooD for GooD'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications),
+              onPressed: () {
+                // Add notification logic here
+              },
+            ),
+          ],
+        ),
         body: Column(
           children: [
-            // Custom AppBar
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-              decoration: BoxDecoration(
-                color: isDarkMode ? Colors.black : primaryGreen,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(55),
-                  bottomRight: Radius.circular(55),
-                ),
-              ),
-              child: SafeArea(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.white),
-                      onPressed: () {
-                        // Show a modal bottom sheet or dialog for menu
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (context) {
-                            return _buildMenuOptions();
-                          },
-                        );
-                      },
-                    ),
-                    const Text(
-                      'FooD for GooD',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    IconButton(
-                      icon:
-                          const Icon(Icons.notifications, color: Colors.white),
-                      onPressed: () {
-                        // Add notification logic here
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Body content below AppBar
             Expanded(
               child: _widgetOptions[_selectedIndex],
             ),
@@ -134,38 +102,34 @@ class _ConsumerAppState extends State<ConsumerApp> {
             ),
           ],
           currentIndex: _selectedIndex,
-          selectedItemColor: primaryGreen,
+          selectedItemColor: Colors.greenAccent,
           selectedFontSize: 16,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           selectedIconTheme: const IconThemeData(size: 26),
           onTap: _onItemTapped,
         ),
-      ),
-    );
-  }
-
-  // Menu options, including dark mode toggle
-  Widget _buildMenuOptions() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      height: 200,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ListTile(
-            leading: Icon(Icons.brightness_6,
-                color: isDarkMode ? Colors.yellow : Colors.grey),
-            title: const Text('Dark Mode'),
-            trailing: Switch(
-              value: isDarkMode,
-              onChanged: (value) {
-                _toggleDarkMode();
-                Navigator.pop(context); // Close the menu after toggling
-              },
-            ),
+        // Drawer
+        drawer: Drawer(
+          child: Column(
+            children: [
+              // Dark Mode Switch
+              const SizedBox(height: 70),
+              ListTile(
+                leading: Icon(Icons.dark_mode_outlined,
+                    color: isDarkMode
+                        ? Colors.yellowAccent
+                        : Colors.lightBlueAccent),
+                title: const Text('Dark Mode'),
+                trailing: Switch(
+                  value: isDarkMode,
+                  onChanged: (value) {
+                    _toggleDarkMode(); // Toggle dark mode
+                  },
+                ),
+              ),
+            ],
           ),
-          // Add more menu items if needed
-        ],
+        ),
       ),
     );
   }
@@ -316,21 +280,11 @@ class AvailablePickupsPage extends StatelessWidget {
       itemBuilder: (context, index) {
         final pickup = availablePickups[index];
         return Card(
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           elevation: 4,
           child: ListTile(
             title: Text(pickup['name']!),
-            subtitle: Text('${pickup['time']} - ${pickup['items']} available'),
-            trailing: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    Colors.green[700], // Set the button color to the same green
-              ),
-              child: const Text('Claim'),
-              onPressed: () {
-                // Add claim logic
-              },
-            ),
+            subtitle: Text('${pickup['time']} - ${pickup['items']}'),
           ),
         );
       },
@@ -341,12 +295,9 @@ class AvailablePickupsPage extends StatelessWidget {
 // Page 3: Past Orders
 class PastOrdersPage extends StatelessWidget {
   final List<Map<String, String>> pastOrders = [
-    {'name': 'Food Item 1', 'date': 'September 12, 2023'},
-    {'name': 'Food Item 2', 'date': 'September 13, 2023'},
-    {'name': 'Food Item 3', 'date': 'September 14, 2023'},
-    {'name': 'Food Item 4', 'date': 'September 15, 2023'},
-    {'name': 'Food Item 5', 'date': 'September 16, 2023'},
-    {'name': 'Food Item 6', 'date': 'September 17, 2023'},
+    {'date': '2023-09-01', 'items': 'Pizza, Burger', 'status': 'Completed'},
+    {'date': '2023-09-05', 'items': 'Sushi, Taco', 'status': 'Completed'},
+    {'date': '2023-09-10', 'items': 'Pasta', 'status': 'Completed'},
   ];
 
   @override
@@ -356,17 +307,12 @@ class PastOrdersPage extends StatelessWidget {
       itemBuilder: (context, index) {
         final order = pastOrders[index];
         return Card(
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           elevation: 4,
           child: ListTile(
-            title: Text(order['name']!),
-            subtitle: Text('Ordered on ${order['date']}'),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () {
-                // Add delete logic
-              },
-            ),
+            title: Text('Order on ${order['date']}'),
+            subtitle: Text('Items: ${order['items']}'),
+            trailing: Text(order['status']!),
           ),
         );
       },
