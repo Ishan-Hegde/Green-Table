@@ -1,8 +1,94 @@
+// ignore: duplicate_ignore
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, unused_local_variable
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'consumer_dash.dart'; // Assuming your ConsumerApp is in this file
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> loginUser() async {
+    setState(() {
+      _isLoading = true; // Show loading indicator while making the request
+    });
+
+    // Replace this URL with your actual backend URL from ngrok
+    const String apiUrl =
+        'https://7c0b-115-98-234-57.ngrok-free.app/api/auth/login';
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(<String, String>{
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Parse the JSON response
+        final responseJson = jsonDecode(response.body);
+
+        // Save the token or user info here if needed
+        String token = responseJson['token'];
+
+        // Store token using shared preferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+
+        // Navigate to Consumer dashboard on success
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ConsumerApp(),
+          ),
+        );
+      } else {
+        // Show an error message if the login failed
+        final responseJson = jsonDecode(response.body);
+        _showErrorDialog(responseJson['message']);
+      }
+    } catch (e) {
+      // Handle connection errors
+      _showErrorDialog(
+          'Failed to connect to the server. Please try again later. Error: $e');
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator after the request is done
+      });
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Login Failed'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,50 +119,8 @@ class LoginPage extends StatelessWidget {
                     color: Color.fromARGB(255, 63, 161, 63),
                   ),
                   const SizedBox(height: 35),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Column(
-                        children: [
-                          const Text(
-                            'Restaurant',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.only(top: 5),
-                            height: 2,
-                            width: 80,
-                            color: Colors.black,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 20),
-                      Column(
-                        children: [
-                          const Text(
-                            'Consumer',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.only(top: 5),
-                            height: 2,
-                            width: 80,
-                            color: Colors.black,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
                   TextField(
+                    controller: _emailController,
                     decoration: InputDecoration(
                       labelText: 'Email',
                       prefixIcon: const Icon(Icons.email),
@@ -89,6 +133,7 @@ class LoginPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   TextField(
+                    controller: _passwordController,
                     obscureText: true,
                     decoration: InputDecoration(
                       labelText: 'Password',
@@ -101,42 +146,13 @@ class LoginPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 35),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          // Google sign-in logic
-                        },
-                        child: Image.asset(
-                          'assets/images/google_logo.png',
-                          height: 36,
-                        ),
-                      ),
-                      const SizedBox(width: 25),
-                      GestureDetector(
-                        onTap: () {
-                          // Apple sign-in logic
-                        },
-                        child: Image.asset(
-                          'assets/images/apple_logo.png',
-                          height: 36,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 25),
                   ElevatedButton(
-                    onPressed: () {
-                      // Navigate to ConsumerApp page on continue button press
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const ConsumerApp(), // Navigates to Consumer dashboard
-                        ),
-                      );
-                    },
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            // Trigger login function
+                            loginUser();
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00B200),
                       padding: const EdgeInsets.symmetric(
@@ -145,23 +161,18 @@ class LoginPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Continue',
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.white)),
                   ),
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
-                      'By continuing, you agree to Green Table\'s Terms of Service and acknowledge Noble\'s Privacy Policy.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      "By continuing, you agree to Green Table's Terms of Service and acknowledge Noble's Privacy Policy.",
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
                   ),
