@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'consumer_dash.dart'; // Assuming your ConsumerApp is in this file
+import 'restaurant_dash.dart'; // Import your Restaurant dashboard page
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool isConsumerSelected = true; // Track which toggle is selected
 
   Future<void> loginUser() async {
     setState(() {
@@ -25,8 +27,9 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     // Replace this URL with your actual backend URL from ngrok
-    const String apiUrl =
-        'https://7c0b-115-98-234-57.ngrok-free.app/api/auth/login';
+    String apiUrl = isConsumerSelected
+        ? 'https://f656-115-98-234-57.ngrok-free.app/api/auth/login'
+        : 'https://f656-115-98-234-57.ngrok-free.app/api/auth/login';
 
     try {
       final response = await http.post(
@@ -43,19 +46,19 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Parse the JSON response
         final responseJson = jsonDecode(response.body);
-
-        // Save the token or user info here if needed
         String token = responseJson['token'];
 
         // Store token using shared preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
 
-        // Navigate to Consumer dashboard on success
+        // Navigate to respective dashboard based on selection
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const ConsumerApp(),
+            builder: (context) => isConsumerSelected
+                ? const ConsumerApp()
+                : const RestaurantApp(),
           ),
         );
       } else {
@@ -119,6 +122,29 @@ class _LoginPageState extends State<LoginPage> {
                     color: Color.fromARGB(255, 63, 161, 63),
                   ),
                   const SizedBox(height: 35),
+
+                  // Toggle Buttons for Consumer and Restaurant
+                  ToggleButtons(
+                    isSelected: [isConsumerSelected, !isConsumerSelected],
+                    onPressed: (int index) {
+                      setState(() {
+                        isConsumerSelected =
+                            index == 0; // Update selection based on index
+                      });
+                    },
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('Consumer'),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('Restaurant'),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 35),
                   TextField(
                     controller: _emailController,
                     decoration: InputDecoration(
@@ -149,17 +175,13 @@ class _LoginPageState extends State<LoginPage> {
                   ElevatedButton(
                     onPressed: _isLoading
                         ? null
-                        : () {
-                            // Trigger login function
-                            loginUser();
-                          },
+                        : () => loginUser(), // Trigger login function
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00B200),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 125.0, vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
