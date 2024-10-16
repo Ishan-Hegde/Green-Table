@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
+import 'package:green_table/pages/map_screen/map_screen.dart'; // Import the MapScreen
 
 class ConsumerApp extends StatefulWidget {
   const ConsumerApp({super.key});
@@ -123,6 +124,12 @@ class _ConsumerAppState extends State<ConsumerApp> {
               icon: const Icon(Icons.notifications),
               onPressed: () {
                 // Add notification logic here
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          const MapScreen()), // Navigate to MapScreen on notification click
+                );
               },
             ),
           ],
