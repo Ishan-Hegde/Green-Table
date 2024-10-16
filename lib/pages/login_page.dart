@@ -1,5 +1,5 @@
 // ignore: duplicate_ignore
-// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, unused_local_variable
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, unused_local_variable, unused_element
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'consumer_dash.dart'; // Assuming your ConsumerApp is in this file
 import 'restaurant_dash.dart'; // Import your Restaurant dashboard page
+import 'package:green_table/config.dart'; // Import the config file
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,19 +22,47 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool isConsumerSelected = true; // Track which toggle is selected
 
+  @override
+  void initState() {
+    super.initState();
+    // Removed automatic navigation to dashboard on app start
+    // _checkAuthentication();
+  }
+
+  Future<void> _checkAuthentication() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token != null) {
+      // Navigate to respective dashboard based on selection if already logged in
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              isConsumerSelected ? const ConsumerApp() : const RestaurantApp(),
+        ),
+      );
+    }
+  }
+
   Future<void> loginUser() async {
     setState(() {
       _isLoading = true; // Show loading indicator while making the request
     });
 
-    // Replace this URL with your actual backend URL from ngrok
-    String apiUrl = isConsumerSelected
-        ? 'https://f656-115-98-234-57.ngrok-free.app/api/auth/login'
-        : 'https://f656-115-98-234-57.ngrok-free.app/api/auth/login';
+    // Input validation
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showErrorDialog('Please fill out all fields.');
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
+      return;
+    }
 
     try {
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse(Config.getLoginUrl(
+            isConsumerSelected)), // Ensure this URL points to your Render backend
         headers: <String, String>{
           'Content-Type': 'application/json',
         },
@@ -64,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         // Show an error message if the login failed
         final responseJson = jsonDecode(response.body);
-        _showErrorDialog(responseJson['message']);
+        _showErrorDialog(responseJson['message'] ?? 'Login failed');
       }
     } catch (e) {
       // Handle connection errors
@@ -165,8 +194,7 @@ class _LoginPageState extends State<LoginPage> {
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                       contentPadding: const EdgeInsets.symmetric(
                           vertical: 12, horizontal: 16),
                     ),
@@ -177,12 +205,11 @@ class _LoginPageState extends State<LoginPage> {
                         ? null
                         : () => loginUser(), // Trigger login function
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B200),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 125.0, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
+                        backgroundColor: const Color(0xFF00B200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 125.0, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10))),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text('Continue',
@@ -193,10 +220,9 @@ class _LoginPageState extends State<LoginPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
-                      "By continuing, you agree to Green Table's Terms of Service and acknowledge Noble's Privacy Policy.",
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      textAlign: TextAlign.center,
-                    ),
+                        "By continuing, you agree to Green Table's Terms of Service and acknowledge Noble's Privacy Policy.",
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        textAlign: TextAlign.center),
                   ),
                   const SizedBox(height: 10),
                 ],
