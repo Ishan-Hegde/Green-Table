@@ -115,7 +115,7 @@ class _RestaurantAppState extends State<RestaurantApp> {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('FOOD FOR GOOD'),
+          title: const Text('FooD FOR GooD'),
           centerTitle: true,
           shadowColor: Colors.blueAccent,
           actions: [

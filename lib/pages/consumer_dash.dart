@@ -1,6 +1,8 @@
-// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
+import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
 
 class ConsumerApp extends StatefulWidget {
@@ -42,6 +44,50 @@ class _ConsumerAppState extends State<ConsumerApp> {
     setState(() {
       isDarkMode = !isDarkMode; // Toggle dark mode
     });
+  }
+
+  // Sign out function
+  Future<void> _signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token'); // Clear the token
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
+  // Show confirmation dialog for sign out
+  void _showSignOutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  Colors.green, // Change text color to green for Cancel
+            ),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+              _signOut(); // Call sign out function
+            },
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  Colors.red, // Change text color to red for Sign Out
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -111,11 +157,9 @@ class _ConsumerAppState extends State<ConsumerApp> {
           selectedIconTheme: const IconThemeData(size: 26),
           onTap: _onItemTapped,
         ),
-        // Drawer
         drawer: Drawer(
           child: Column(
             children: [
-              // Dark Mode Switch
               const SizedBox(height: 70),
               ListTile(
                 leading: Icon(Icons.dark_mode_outlined,
@@ -124,11 +168,16 @@ class _ConsumerAppState extends State<ConsumerApp> {
                         : Colors.lightBlueAccent),
                 title: const Text('Dark Mode'),
                 trailing: Switch(
-                  value: isDarkMode,
-                  onChanged: (value) {
-                    _toggleDarkMode(); // Toggle dark mode
-                  },
-                ),
+                    value: isDarkMode,
+                    onChanged: (value) {
+                      _toggleDarkMode(); // Toggle dark mode
+                    }),
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Sign Out'),
+                onTap:
+                    _showSignOutConfirmation, // Show confirmation dialog on tap
               ),
             ],
           ),
