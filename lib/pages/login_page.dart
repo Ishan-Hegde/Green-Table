@@ -148,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
                   const Icon(
                     Icons.restaurant_rounded,
                     size: 64,
-                    color: Color.fromARGB(255, 63, 161, 63),
+                    color: Color(0xFF00B200),
                   ),
                   const SizedBox(height: 35),
 
@@ -161,6 +161,16 @@ class _LoginPageState extends State<LoginPage> {
                             index == 0; // Update selection based on index
                       });
                     },
+                    color: Colors.black, // Text color when not selected
+                    selectedColor: Colors.white, // Text color when selected
+                    fillColor: const Color(
+                        0xFF00B200), // Background color when selected
+                    borderColor: const Color(
+                        0xFF00B200), // Border color for unselected buttons
+                    selectedBorderColor: const Color(
+                        0xFF00B200), // Border color for selected buttons
+                    borderRadius: const BorderRadius.all(
+                        Radius.circular(10.0)), // Rounded corners
                     children: const [
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -178,7 +188,8 @@ class _LoginPageState extends State<LoginPage> {
                     controller: _emailController,
                     decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email),
+                      prefixIcon:
+                          const Icon(Icons.email, color: Color(0xFF00B200)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -192,7 +203,8 @@ class _LoginPageState extends State<LoginPage> {
                     obscureText: true,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock),
+                      prefixIcon:
+                          const Icon(Icons.lock, color: Color(0xFF00B200)),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
                       contentPadding: const EdgeInsets.symmetric(
