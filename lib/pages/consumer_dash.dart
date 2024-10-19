@@ -157,6 +157,8 @@ class _ConsumerAppState extends State<ConsumerApp> {
             ),
           ],
           currentIndex: _selectedIndex,
+          backgroundColor:
+              isDarkMode ? const Color.fromARGB(255, 8, 8, 8) : Colors.white,
           selectedItemColor:
               isDarkMode ? Colors.greenAccent : const Color(0xFF00B200),
           selectedFontSize: 16,
@@ -165,6 +167,9 @@ class _ConsumerAppState extends State<ConsumerApp> {
           onTap: _onItemTapped,
         ),
         drawer: Drawer(
+          backgroundColor:
+              isDarkMode ? const Color.fromARGB(146, 8, 8, 8) : Colors.white,
+          width: 260,
           child: Column(
             children: [
               const SizedBox(height: 70),
@@ -315,14 +320,15 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey[850] // Dark mode box color
+                    ? const Color.fromARGB(
+                        255, 15, 15, 15) // Dark mode box color
                     : Colors.white, // Light mode box color
                 borderRadius: BorderRadius.circular(10.0),
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black
-                            .withOpacity(0.5) // Darker shadow for dark mode
+                        ? const Color(0xFF00B200)
+                            .withOpacity(0.3) // Darker shadow for dark mode
                         : Colors.black
                             .withOpacity(0.2), // Lighter shadow for light mode
                     spreadRadius: 3,

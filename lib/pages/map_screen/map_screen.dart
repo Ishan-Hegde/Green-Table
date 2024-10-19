@@ -27,6 +27,7 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('OLA Map'),
+        backgroundColor: const Color(0xFF00B200),
       ),
       body: GoogleMap(
         onMapCreated: _onMapCreated,
