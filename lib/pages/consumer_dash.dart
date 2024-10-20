@@ -121,14 +121,14 @@ class _ConsumerAppState extends State<ConsumerApp> {
           shadowColor: Colors.blueAccent,
           actions: [
             IconButton(
-              icon: const Icon(Icons.notifications),
+              icon: const Icon(Icons.location_pin),
               onPressed: () {
                 // Add notification logic here
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) =>
-                          const MapScreen()), // Navigate to MapScreen on notification click
+                          MapScreen()), // Navigate to MapScreen on notification click
                 );
               },
             ),

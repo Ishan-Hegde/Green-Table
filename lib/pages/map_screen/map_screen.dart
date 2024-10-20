@@ -1,5 +1,3 @@
-// map_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -13,10 +11,8 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late GoogleMapController mapController;
-
-  // Initial position
-  static const LatLng _initialPosition =
-      LatLng(37.7749, -122.4194); // San Francisco coordinates
+  final LatLng _center =
+      const LatLng(19.0760, 72.8777); // Coordinates for Mumbai
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -26,14 +22,14 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OLA Map'),
-        backgroundColor: const Color(0xFF00B200),
+        title: Text('Green Table Map'),
+        backgroundColor: Color(0xFF00B200),
       ),
       body: GoogleMap(
         onMapCreated: _onMapCreated,
-        initialCameraPosition: const CameraPosition(
-          target: _initialPosition,
-          zoom: 12,
+        initialCameraPosition: CameraPosition(
+          target: _center,
+          zoom: 11.0,
         ),
       ),
     );
