@@ -1,9 +1,9 @@
-// ignore_for_file: depend_on_referenced_packages, use_build_context_synchronously
+// ignore_for_file: unused_field, depend_on_referenced_packages
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_google_places/flutter_google_places.dart';
 import 'package:google_maps_webservice/places.dart';
 
 class MapScreen extends StatefulWidget {
@@ -15,29 +15,31 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late GoogleMapController mapController;
-  final LatLng _center =
-      const LatLng(19.0760, 72.8777); // Coordinates for Mumbai
+  final LatLng _center = const LatLng(19.0760, 72.8777); // Mumbai
   LatLng? _currentLocation;
   String? _savedAddress;
 
-  // Initialize Places API with your Google API Key
   final _places = GoogleMapsPlaces(
-      apiKey:
-          "AIzaSyDNdM7R0dcqvV8BW8nigVS3bwgSjc3A-RQ"); // Replace with your API key
+      apiKey: "YOUR_GOOGLE_API_KEY"); // Put your Google API key here
+  final TextEditingController _searchController = TextEditingController();
+  List<Prediction> _suggestions = [];
+  final Set<Marker> _markers = {};
 
-  // Method to handle map creation
+  // Timer for debounce functionality
+  Timer? _debounce;
+
+  // Initialize map controller
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
   }
 
-  // Method to get the user's current location
+  // Get user's current location
   Future<void> _getCurrentLocation() async {
     LocationPermission permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        // Permissions are denied, show a message to the user.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Location permissions are denied")),
         );
@@ -46,7 +48,6 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permissions are permanently denied.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Location permissions are permanently denied")),
       );
@@ -63,27 +64,87 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // Method to search for a place
-  Future<void> _searchPlace() async {
-    Prediction? prediction = await PlacesAutocomplete.show(
-      context: context,
-      apiKey: "YOUR_GOOGLE_MAPS_API_KEY",
-      mode: Mode.overlay,
-      language: "en",
-      components: [Component(Component.country, "in")],
-    );
+  // Fetch suggestions from Google Places API with debounce functionality
+  Future<void> _getSuggestions(String query) async {
+    // Cancel the previous timer if there was one
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
 
-    if (prediction != null) {
-      PlacesDetailsResponse detail =
-          await _places.getDetailsByPlaceId(prediction.placeId!);
-      final lat = detail.result.geometry!.location.lat;
-      final lng = detail.result.geometry!.location.lng;
+    // Start a new timer for debounce
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (query.isEmpty) {
+        if (mounted) {
+          setState(() => _suggestions = []);
+        }
+        return;
+      }
 
+      try {
+        final response = await _places.autocomplete(
+          query,
+          components: [Component(Component.country, "in")],
+        );
+
+        if (response.isOkay) {
+          if (mounted) {
+            setState(() => _suggestions = response.predictions);
+          }
+        } else {
+          print("Error fetching suggestions: ${response.errorMessage}");
+        }
+      } catch (e) {
+        print("Error fetching suggestions: $e");
+      }
+    });
+  }
+
+  // Select a suggestion and mark it on the map
+  Future<void> _selectSuggestion(Prediction prediction) async {
+    // Fetch place details using the placeId from the suggestion
+    PlacesDetailsResponse detail =
+        await _places.getDetailsByPlaceId(prediction.placeId!);
+
+    // Check if the response has valid details
+    if (detail.result.geometry == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('No valid location data found for the selected place')),
+      );
+      return;
+    }
+
+    final lat = detail.result.geometry!.location.lat;
+    final lng = detail.result.geometry!.location.lng;
+    final address = detail.result.formattedAddress ?? 'Address not available';
+
+    // Add a marker for the selected place
+    if (mounted) {
       setState(() {
-        _savedAddress = detail.result.formattedAddress;
-        mapController.animateCamera(CameraUpdate.newLatLng(LatLng(lat, lng)));
+        _savedAddress = address;
+        _markers.add(Marker(
+          markerId: MarkerId(prediction.placeId!),
+          position: LatLng(lat, lng),
+          infoWindow: InfoWindow(
+            title: prediction.description,
+            snippet: address,
+          ),
+        ));
+        _suggestions = []; // Clear suggestions after selection
+        _searchController.clear(); // Clear the search bar
       });
     }
+
+    // Move the camera to the selected location
+    mapController.animateCamera(
+      CameraUpdate.newLatLng(LatLng(lat, lng)),
+    );
+  }
+
+  @override
+  void dispose() {
+    // Cancel the debounce timer when the widget is disposed
+    _debounce?.cancel();
+    super.dispose();
   }
 
   @override
@@ -101,15 +162,9 @@ class _MapScreenState extends State<MapScreen> {
               target: _center,
               zoom: 11.0,
             ),
-            markers: _currentLocation != null
-                ? {
-                    Marker(
-                      markerId: MarkerId("current_location"),
-                      position: _currentLocation!,
-                      infoWindow: InfoWindow(title: 'Your Location'),
-                    )
-                  }
-                : {},
+            markers: _markers, // Display markers on the map
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
           ),
           Positioned(
             top: 20,
@@ -117,10 +172,9 @@ class _MapScreenState extends State<MapScreen> {
             right: 10,
             child: Column(
               children: [
-                // Search bar to find a location
                 TextField(
-                  readOnly: true,
-                  onTap: _searchPlace,
+                  controller: _searchController,
+                  onChanged: _getSuggestions, // Fetch suggestions as user types
                   decoration: InputDecoration(
                     hintText: 'Search for a place',
                     filled: true,
@@ -132,28 +186,44 @@ class _MapScreenState extends State<MapScreen> {
                     prefixIcon: Icon(Icons.search),
                   ),
                 ),
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _getCurrentLocation,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF00B200),
-                      ),
-                      child: Text('Detect Location'),
-                    ),
-                    if (_savedAddress != null)
-                      Expanded(
-                        child: Text(
-                          'Saved Address: $_savedAddress',
-                          style: TextStyle(color: Colors.black, fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
+                SizedBox(height: 5),
+                // Display suggestion list
+                _suggestions.isNotEmpty
+                    ? Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ),
-                  ],
-                ),
+                        child: ListView.builder(
+                          itemCount: _suggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = _suggestions[index];
+                            return ListTile(
+                              title: Text(suggestion.description!),
+                              onTap: () => _selectSuggestion(suggestion),
+                            );
+                          },
+                        ),
+                      )
+                    : Container(),
               ],
+            ),
+          ),
+          Positioned(
+            bottom: 100,
+            right: 7,
+            child: FloatingActionButton(
+              onPressed: _getCurrentLocation,
+              backgroundColor: Color(0xFF00B200),
+              child: Icon(Icons.my_location),
             ),
           ),
         ],
