@@ -1,12 +1,10 @@
-// ignore_for_file: unused_import, avoid_print, duplicate_ignore
-
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart' as location;
-import 'package:geocoding/geocoding.dart'; // Geocoding package
-import 'package:shared_preferences/shared_preferences.dart'; // SharedPreferences for saving address
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:location/location.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -16,130 +14,240 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  GoogleMapController? _mapController;
-  final location.Location _location = location.Location();
-  LatLng _initialPosition = LatLng(0.0, 0.0);
-  LatLng _currentPosition = LatLng(0.0, 0.0);
-  String _address = 'Current Address';
-  bool _serviceEnabled = false;
-  location.PermissionStatus? _permissionGranted;
+  late GoogleMapController mapController;
+  LatLng _center = const LatLng(19.0760, 72.8777); // Default to Mumbai
+  LatLng _pickedLocation = const LatLng(19.0760, 72.8777);
+  final List<Marker> _markers = [];
+  Circle? _currentLocationCircle;
+  String _addressName = "";
+  final Location _location = Location();
+  StreamSubscription<LocationData>? _locationSubscription;
 
-  @override
-  void initState() {
-    super.initState();
-    _checkLocationPermission();
-  }
+  List<Map<String, dynamic>> _savedAddresses = [];
 
-  // Check if location permission is granted
-  Future<void> _checkLocationPermission() async {
-    _serviceEnabled = await _location.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await _location.requestService();
-      if (!_serviceEnabled) {
-        return;
-      }
-    }
-
-    _permissionGranted = await _location.hasPermission();
-    if (_permissionGranted == location.PermissionStatus.denied) {
-      _permissionGranted = await _location.requestPermission();
-      if (_permissionGranted != location.PermissionStatus.granted) {
-        return;
-      }
-    }
-
-    // Get current location if permission granted
-    _getCurrentLocation();
-  }
-
-  // Get current location and move the camera to it
   Future<void> _getCurrentLocation() async {
-    final currentLocation = await _location.getLocation();
+    var userLocation = await _location.getLocation();
+    if (!mounted) return;
 
-    setState(() {
-      _currentPosition =
-          LatLng(currentLocation.latitude!, currentLocation.longitude!);
-      _initialPosition = _currentPosition;
-    });
-
-    _getAddressFromLatLng(_currentPosition);
-
-    _mapController
-        ?.moveCamera(CameraUpdate.newLatLngZoom(_currentPosition, 15));
-  }
-
-  // Get address from LatLng
-  Future<void> _getAddressFromLatLng(LatLng latLng) async {
-    try {
-      // Get the placemarks from the coordinates
-      List<Placemark>? placemarks = await GeocodingPlatform.instance
-          ?.placemarkFromCoordinates(latLng.latitude, latLng.longitude);
-      Placemark place = placemarks![0];
-      setState(() {
-        _address = "${place.name}, ${place.locality}, ${place.country}";
-      });
-    } catch (e) {
-      // ignore: avoid_print
-      print("Error getting address: $e");
-    }
-  }
-
-  // Save the address in MongoDB
-  Future<void> _saveAddress(String addressName) async {
-    // Assuming you have an API endpoint like POST /save-address
-    final url = Uri.parse('http://your-backend-url/save-address');
-    final response = await http.post(
-      url,
-      body: json.encode({
-        'address': _address,
-        'name': addressName,
-        // Include user identifier (e.g., userId) if needed
-        'userId': 'user_id_here',
-      }),
-      headers: {'Content-Type': 'application/json'},
+    LatLng currentLocation = LatLng(
+      userLocation.latitude ?? 19.0760,
+      userLocation.longitude ?? 72.8777,
     );
 
+    setState(() {
+      _center = currentLocation;
+      _pickedLocation = _center;
+
+      _markers.removeWhere(
+          (marker) => marker.markerId == const MarkerId('currentLocation'));
+      _markers.add(Marker(
+        markerId: const MarkerId('currentLocation'),
+        position: currentLocation,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      ));
+
+      _currentLocationCircle = Circle(
+        circleId: const CircleId('currentLocationCircle'),
+        center: currentLocation,
+        radius: 50,
+        fillColor: Colors.blue.withOpacity(0.3),
+        strokeColor: Colors.blueAccent,
+        strokeWidth: 2,
+      );
+    });
+
+    mapController.animateCamera(CameraUpdate.newCameraPosition(
+      CameraPosition(
+        target: currentLocation,
+        zoom: 17.0,
+      ),
+    ));
+  }
+
+  Future<void> _startLocationUpdates() async {
+    _locationSubscription = _location.onLocationChanged.listen((userLocation) {
+      if (!mounted) return;
+
+      LatLng currentLocation = LatLng(
+        userLocation.latitude ?? 19.0760,
+        userLocation.longitude ?? 72.8777,
+      );
+
+      setState(() {
+        _center = currentLocation;
+        _pickedLocation = _center;
+
+        _currentLocationCircle = Circle(
+          circleId: const CircleId('currentLocationCircle'),
+          center: currentLocation,
+          radius: 50,
+          fillColor: Colors.blue.withOpacity(0.3),
+          strokeColor: Colors.blueAccent,
+          strokeWidth: 2,
+        );
+      });
+
+      mapController.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: currentLocation,
+          zoom: 17.0,
+          bearing: userLocation.heading ?? 0.0,
+        ),
+      ));
+    });
+  }
+
+  Future<String> _getAddressFromLatLng(LatLng location) async {
+    final apiKey = 'YOUR_GOOGLE_API_KEY'; // Replace with your Google API Key
+    final url =
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.latitude},${location.longitude}&key=$apiKey';
+
+    final response = await http.get(Uri.parse(url));
+
     if (response.statusCode == 200) {
-      // Success - handle as required
-      print('Address saved successfully');
+      final data = json.decode(response.body);
+      if (data['results'].isNotEmpty) {
+        return data['results'][0]['formatted_address'];
+      } else {
+        return 'Address not found';
+      }
     } else {
-      // Error handling
-      print('Failed to save address');
+      throw Exception('Failed to load address');
     }
   }
 
-  // Show dialog to input address name
-  void _showSaveAddressDialog() {
-    // ignore: no_leading_underscores_for_local_identifiers
-    TextEditingController _nameController = TextEditingController();
+  Future<void> _saveAddress() async {
+    if (_addressName.isEmpty) {
+      _showErrorDialog("Please enter an address name.");
+      return;
+    }
+
+    final fullAddress = await _getAddressFromLatLng(_pickedLocation);
+
+    final newAddress = {
+      'latitude': _pickedLocation.latitude,
+      'longitude': _pickedLocation.longitude,
+      'name': _addressName,
+      'full_address': fullAddress,
+    };
+
+    if (!mounted) return;
+    setState(() {
+      _savedAddresses.add(newAddress);
+    });
+
+    await _saveAddressesToPreferences();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Address saved successfully!')),
+    );
+  }
+
+  Future<void> _loadAddressesFromPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedAddressesString = prefs.getString('saved_addresses');
+
+    if (savedAddressesString != null) {
+      if (!mounted) return;
+      setState(() {
+        _savedAddresses = List<Map<String, dynamic>>.from(
+          json.decode(savedAddressesString),
+        );
+      });
+    }
+  }
+
+  Future<void> _saveAddressesToPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedAddressesString = json.encode(_savedAddresses);
+    await prefs.setString('saved_addresses', savedAddressesString);
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSavedAddresses() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Save Address'),
-          content: TextField(
-            controller: _nameController,
-            decoration: InputDecoration(hintText: 'Enter address name'),
+          title: const Text('Saved Addresses'),
+          content: ListView.builder(
+            itemCount: _savedAddresses.length,
+            itemBuilder: (context, index) {
+              final address = _savedAddresses[index];
+              return ListTile(
+                title: Text(address['name']),
+                subtitle: Text(address['full_address']),
+              );
+            },
           ),
-          actions: <Widget>[
+        );
+      },
+    );
+  }
+
+  void _onMapTapped(LatLng location) {
+    setState(() {
+      _pickedLocation = location;
+      _markers.clear();
+      _markers.add(Marker(
+        markerId: MarkerId(location.toString()),
+        position: location,
+        infoWindow: const InfoWindow(title: 'Selected Location'),
+      ));
+    });
+
+    _showSaveAddressDialog();
+  }
+
+  // Show dialog to enter name for the address
+  void _showSaveAddressDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Save Address'),
+          content: TextField(
+            onChanged: (value) {
+              _addressName = value;
+            },
+            decoration: const InputDecoration(hintText: 'Enter Address Name'),
+          ),
+          actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.of(context).pop();
+                _saveAddress();
               },
-              child: Text('Cancel'),
+              style: TextButton.styleFrom(
+                foregroundColor:
+                    const Color(0xFF00B200), // Same color as app bar
+              ),
+              child: const Text('Save'),
             ),
             TextButton(
               onPressed: () {
-                String addressName = _nameController.text;
-                if (addressName.isNotEmpty) {
-                  _saveAddress(addressName);
-                  Navigator.pop(context);
-                } else {
-                  // Show some error message if name is empty
-                  print('Address name cannot be empty');
-                }
+                Navigator.of(context).pop();
               },
-              child: Text('Save'),
+              style: TextButton.styleFrom(
+                foregroundColor:
+                    const Color(0xFF00B200), // Same color as app bar
+              ),
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -147,66 +255,57 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // Handle tap to get address from clicked location on map
-  void _onMapTapped(LatLng latLng) async {
-    setState(() {
-      _currentPosition = latLng;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadAddressesFromPreferences();
+    _getCurrentLocation();
+    _startLocationUpdates();
+  }
 
-    // Fetch address based on the tapped location
-    await _getAddressFromLatLng(latLng);
+  @override
+  void dispose() {
+    mapController.dispose();
+    _locationSubscription?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Map Screen'),
+        backgroundColor: const Color(0xFF00B200),
+        title: const Text('GT MAPS'),
         actions: [
           IconButton(
-            icon: Icon(Icons.my_location),
-            onPressed: _getCurrentLocation, // Move camera to current location
+            icon: const Icon(Icons.add_home_sharp),
+            onPressed: _showSavedAddresses,
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: GoogleMap(
-              onMapCreated: (GoogleMapController controller) {
-                _mapController = controller;
-              },
-              initialCameraPosition: CameraPosition(
-                target: _initialPosition,
-                zoom: 14.0,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              onTap: _onMapTapped, // On map tap, update location and address
-              onCameraMove: (CameraPosition position) {
-                setState(() {
-                  _currentPosition = position.target;
-                });
-              },
+          GoogleMap(
+            onMapCreated: (GoogleMapController controller) {
+              mapController = controller;
+            },
+            initialCameraPosition: CameraPosition(
+              target: _center,
+              zoom: 10.0,
             ),
+            markers: Set<Marker>.of(_markers),
+            circles: _currentLocationCircle != null
+                ? <Circle>{_currentLocationCircle!}
+                : {},
+            onTap: _onMapTapped,
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Text('Current Address: $_address'),
-                SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed:
-                      _showSaveAddressDialog, // Show dialog to save address
-                  child: Text('Save Address'),
-                ),
-                SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _getCurrentLocation,
-                  child: Text('Live Location'),
-                ),
-              ],
+          Positioned(
+            bottom: 110,
+            right: 8,
+            child: FloatingActionButton(
+              onPressed: _getCurrentLocation,
+              backgroundColor: const Color(0xFF00B200),
+              child: const Icon(Icons.my_location),
             ),
           ),
         ],
