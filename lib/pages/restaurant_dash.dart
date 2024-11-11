@@ -40,11 +40,7 @@ class _RestaurantAppState extends State<RestaurantApp> {
   }
 
   // Toggle dark mode
-  void _toggleDarkMode() {
-    setState(() {
-      isDarkMode = !isDarkMode; // Toggle dark mode
-    });
-  }
+  void _toggleDarkMode() => setState(() => isDarkMode = !isDarkMode);
 
   // Sign out function
   Future<void> _signOut() async {
@@ -63,27 +59,17 @@ class _RestaurantAppState extends State<RestaurantApp> {
       builder: (context) => AlertDialog(
         title: const Text('Confirm Sign Out'),
         content: const Text('Are you sure you want to sign out?'),
-        actions: <Widget>[
+        actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-            },
-            style: TextButton.styleFrom(
-              foregroundColor:
-                  Colors.green, // Change text color to green for Cancel
-            ),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Colors.green)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-              _signOut(); // Call sign out function
+              Navigator.of(context).pop();
+              _signOut();
             },
-            style: TextButton.styleFrom(
-              foregroundColor:
-                  Colors.red, // Change text color to red for Sign Out
-            ),
-            child: const Text('Sign Out'),
+            child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -162,16 +148,13 @@ class _RestaurantAppState extends State<RestaurantApp> {
             children: [
               const SizedBox(height: 70),
               ListTile(
-                leading: Icon(Icons.dark_mode_outlined,
+                leading: Icon(Icons.dark_mode,
                     color: isDarkMode
                         ? Colors.yellowAccent
                         : Colors.lightBlueAccent),
                 title: const Text('Dark Mode'),
                 trailing: Switch(
-                    value: isDarkMode,
-                    onChanged: (value) {
-                      _toggleDarkMode(); // Toggle dark mode
-                    }),
+                    value: isDarkMode, onChanged: (value) => _toggleDarkMode()),
               ),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),

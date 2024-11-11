@@ -41,11 +41,7 @@ class _ConsumerAppState extends State<ConsumerApp> {
   }
 
   // Toggle dark mode
-  void _toggleDarkMode() {
-    setState(() {
-      isDarkMode = !isDarkMode; // Toggle dark mode
-    });
-  }
+  void _toggleDarkMode() => setState(() => isDarkMode = !isDarkMode);
 
   // Sign out function
   Future<void> _signOut() async {
@@ -186,6 +182,22 @@ class _ConsumerAppState extends State<ConsumerApp> {
                     }),
               ),
               ListTile(
+                  leading: const Icon(Icons.star, color: Colors.yellow),
+                  title: const Text('Favourites'),
+                  onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => FavoriteItemsPage()),
+                      )),
+              ListTile(
+                  leading: const Icon(Icons.account_box_rounded,
+                      color: Colors.blueAccent),
+                  title: const Text('Profile'),
+                  onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => ProfilePage()),
+                      )),
+              ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
                 title: const Text('Sign Out'),
                 onTap:
@@ -195,6 +207,115 @@ class _ConsumerAppState extends State<ConsumerApp> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class FavoriteItemsPage extends StatelessWidget {
+  final List<Map<String, String>> favoriteItems = [
+    {'restaurant': 'Restaurant A', 'details': 'Amazing pasta and pizzas'},
+    {'restaurant': 'Restaurant B', 'details': 'Delicious burgers and fries'},
+    // Add more favorites if needed
+  ];
+
+  void _removeFavorite(BuildContext context, Map<String, String> favorite) {
+    // Show a Snackbar after removing an item
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${favorite['restaurant']} removed from favorites.'),
+        duration: const Duration(seconds: 2),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            // Optionally handle Undo action here
+          },
+        ),
+      ),
+    );
+    // Optionally: Implement your removal logic here, like updating the list or database
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Favorites")),
+      body: ListView.builder(
+        itemCount: favoriteItems.length,
+        itemBuilder: (context, index) {
+          final favorite = favoriteItems[index];
+          return ListTile(
+            title: Text(favorite['restaurant'] ?? ''),
+            subtitle: Text(favorite['details'] ?? ''),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _removeFavorite(context, favorite),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ProfilePage extends StatelessWidget {
+  void _showProfileOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Change Name'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Change Name option selected.')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.email),
+              title: const Text('Change Email'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Change Email option selected.')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lock),
+              title: const Text('Change Password'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Change Password option selected.')),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Profile"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () => _showProfileOptions(context),
+          ),
+        ],
+      ),
+      body: Center(child: const Text("Profile Details Here")),
     );
   }
 }
