@@ -1,7 +1,9 @@
-// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, unused_import, library_prefixes, avoid_print
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
 
@@ -290,12 +292,61 @@ class PastOrdersPage extends StatelessWidget {
 }
 
 // Page for restaurant to manage orders
-class OrdersPage extends StatelessWidget {
+class OrdersPage extends StatefulWidget {
   final String restaurantId;
-  OrdersPage({required this.restaurantId});
+  const OrdersPage({required this.restaurantId});
 
-  // Sample food items and categories
-  final List<String> categories = ['Pizza', 'Burger', 'Sushi', 'Taco'];
+  @override
+  _OrdersPageState createState() => _OrdersPageState();
+}
+
+class _OrdersPageState extends State<OrdersPage> {
+  IO.Socket? socket;
+  List<Map<String, dynamic>> foodItems = []; // List to hold food items
+
+  // Sample categories (you can fetch this list from backend or API)
+  final List<String> categories = [
+    'Breakfast',
+    'Main Course',
+    'Snacks',
+    'Dinner',
+    'Desserts'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeSocket();
+  }
+
+  // Initialize socket connection and listen for food item updates
+  void initializeSocket() {
+    socket =
+        IO.io('https://green-table-backend.onrender.com', <String, dynamic>{
+      'transports': ['websocket'],
+    });
+
+    socket?.on('newFoodAvailable', (data) {
+      setState(() {
+        foodItems.add(data); // Add new food to the list when received
+      });
+    });
+
+    socket?.on('connect', (_) {
+      print('Connected to server');
+    });
+
+    socket?.on('disconnect', (_) {
+      print('Disconnected from server');
+    });
+  }
+
+  @override
+  void dispose() {
+    socket
+        ?.dispose(); // Close the socket connection when the widget is disposed
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -314,6 +365,25 @@ class OrdersPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          // Dropdown for food selection using dynamic food items
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Select Food',
+              border: OutlineInputBorder(),
+            ),
+            items: foodItems.map((food) {
+              return DropdownMenuItem<String>(
+                value: food[
+                    'name'], // Assuming 'name' key is present in the food data
+                child: Text(food['name'] ?? 'Unnamed Food'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              // Handle food selection
+            },
+          ),
+          const SizedBox(height: 16),
+          // Dropdown for category selection
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(
               labelText: 'Category',
