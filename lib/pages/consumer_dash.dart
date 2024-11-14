@@ -111,24 +111,24 @@ class _ConsumerAppState extends State<ConsumerApp> {
       ),
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('FooD for GooD'),
-          centerTitle: true,
-          shadowColor: Colors.blueAccent,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.location_pin),
-              onPressed: () {
-                // Add notification logic here
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          MapScreen()), // Navigate to MapScreen on notification click
-                );
-              },
-            ),
-          ],
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(50.0), // Adjust height of the AppBar
+          child: AppBar(
+            title: const Text('FooD for GooD'),
+            centerTitle: true,
+            shadowColor: Colors.blueAccent,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.location_pin),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MapScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
         body: Column(
           children: [
