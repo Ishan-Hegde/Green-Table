@@ -184,7 +184,7 @@ class _ConsumerAppState extends State<ConsumerApp> {
               ListTile(
                   leading: const Icon(Icons.star, color: Colors.yellow),
                   title: const Text('Favourites'),
-                  onTap: () => Navigator.pushReplacement(
+                  onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (context) => FavoriteItemsPage()),
@@ -193,7 +193,7 @@ class _ConsumerAppState extends State<ConsumerApp> {
                   leading: const Icon(Icons.account_box_rounded,
                       color: Colors.blueAccent),
                   title: const Text('Profile'),
-                  onTap: () => Navigator.pushReplacement(
+                  onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => ProfilePage()),
                       )),
@@ -219,7 +219,6 @@ class FavoriteItemsPage extends StatelessWidget {
   ];
 
   void _removeFavorite(BuildContext context, Map<String, String> favorite) {
-    // Show a Snackbar after removing an item
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${favorite['restaurant']} removed from favorites.'),
@@ -238,7 +237,15 @@ class FavoriteItemsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Favorites")),
+      appBar: AppBar(
+        title: const Text("Favorites"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // Simple back navigation
+          },
+        ),
+      ),
       body: ListView.builder(
         itemCount: favoriteItems.length,
         itemBuilder: (context, index) {
@@ -308,6 +315,12 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Profile"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // Correct way to go back
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
