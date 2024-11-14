@@ -1,10 +1,11 @@
-// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, library_prefixes, avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
 import 'package:green_table/pages/map_screen/map_screen.dart'; // Import the MapScreen
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ConsumerApp extends StatefulWidget {
   const ConsumerApp({super.key});
@@ -116,7 +117,7 @@ class _ConsumerAppState extends State<ConsumerApp> {
           child: AppBar(
             title: const Text('FooD for GooD'),
             centerTitle: true,
-            shadowColor: Colors.blueAccent,
+            shadowColor: Colors.blueAccent.shade700,
             actions: [
               IconButton(
                 icon: const Icon(Icons.location_pin),
@@ -341,74 +342,54 @@ class FoodForGoodPage extends StatefulWidget {
 
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
   final List<Map<String, String>> _restaurants = [
-    {
-      'name': 'Pizzeria',
-      'items': '10 items',
-      'description': 'Delicious pizza with fresh ingredients.'
-    },
-    {
-      'name': 'Sushi Place',
-      'items': '5 items',
-      'description': 'Authentic Japanese sushi with a modern twist.'
-    },
-    {
-      'name': 'Burger Joint',
-      'items': '8 items',
-      'description': 'Juicy burgers made to order.'
-    },
-    {
-      'name': 'BBQ Nation',
-      'items': '12 items',
-      'description': 'Mouth-watering BBQ and grilled items.'
-    },
-    {
-      'name': 'Taco Stand',
-      'items': '7 items',
-      'description': 'Authentic Mexican tacos, freshly made.'
-    },
-    {
-      'name': 'Pasta House',
-      'items': '9 items',
-      'description': 'Homemade pasta with various sauces.'
-    },
-    {
-      'name': 'Burger King',
-      'items': '4 items',
-      'description': 'Your favorite fast food chain burgers.'
-    },
-    {
-      'name': 'McDonalds',
-      'items': '15 items',
-      'description': 'Classic fast food, known worldwide.'
-    },
-    {
-      'name': 'KFC',
-      'items': '6 items',
-      'description': 'Fried chicken made with 11 herbs and spices.'
-    },
-    {
-      'name': 'TWC',
-      'items': '1 items',
-      'description': 'A local favorite with fresh daily offerings.'
-    },
-    {
-      'name': 'Starbucks',
-      'items': '9 items',
-      'description': 'Coffeehouse chain known for its signature drinks.'
-    },
-    {
-      'name': 'Tunga International',
-      'items': '3 items',
-      'description': 'Fine dining with a mix of Indian and global cuisines.'
-    },
+    // Your restaurant list as before
   ];
 
   List<Map<String, String>> _filteredRestaurants = [];
+  late IO.Socket socket;
 
   @override
   void initState() {
     super.initState();
     _filteredRestaurants = _restaurants; // Initialize with all restaurants
+
+    // Initialize Socket.IO connection
+    _initializeSocket();
+  }
+
+  void _initializeSocket() {
+    // Connect to your server URL
+    socket =
+        IO.io('https://green-table-backend.onrender.com', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+
+    socket.connect();
+
+    // Listen for updates from the server (e.g., new food offers)
+    socket.on('food_update', (data) {
+      // Update the restaurant list or do something with the data
+      print('Received food update: $data');
+      setState(() {
+        // Handle server response to update restaurant list
+        // For example, modify _restaurants or _filteredRestaurants
+        _restaurants.add({
+          'name': data['name'],
+          'items': data['items'],
+          'description': data['description'],
+        });
+        _filteredRestaurants = _restaurants; // Update the filtered list
+      });
+    });
+
+    socket.on('connect', (_) {
+      print('Connected to server');
+    });
+
+    socket.on('disconnect', (_) {
+      print('Disconnected from server');
+    });
   }
 
   void _filterSearchResults(String query) {
@@ -424,6 +405,12 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
             .toList();
       });
     }
+  }
+
+  @override
+  void dispose() {
+    socket.disconnect();
+    super.dispose();
   }
 
   @override

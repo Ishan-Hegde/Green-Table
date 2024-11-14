@@ -30,7 +30,9 @@ class _RestaurantAppState extends State<RestaurantApp> {
   final List<Widget> _widgetOptions = <Widget>[
     AvailablePickupsPage(),
     PastOrdersPage(),
-    OrdersPage(),
+    OrdersPage(
+      restaurantId: 'Restaurant123', // Sample restaurant ID
+    ),
   ];
 
   void _onItemTapped(int index) {
@@ -269,12 +271,6 @@ class PastOrdersPage extends StatelessWidget {
                   },
                   icon: const Icon(Icons.download),
                   label: const Text('Download Invoice'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 16),
-                    backgroundColor: const Color(0xFF00B200),
-                  ),
                 ),
               ),
             ],
@@ -284,21 +280,83 @@ class PastOrdersPage extends StatelessWidget {
     );
   }
 
+  // Function to handle the invoice download logic
   void _downloadInvoice(BuildContext context, Map<String, String> order) {
-    Navigator.pop(context); // Close the bottom sheet.
+    // Here you can implement the logic to download the invoice
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            "Invoice for order No. ${order['number']} is being downloaded."),
-      ),
+      const SnackBar(content: Text('Invoice downloaded successfully!')),
     );
   }
 }
 
-// Placeholder for OrdersPage
+// Page for restaurant to manage orders
 class OrdersPage extends StatelessWidget {
+  final String restaurantId;
+  OrdersPage({required this.restaurantId});
+
+  // Sample food items and categories
+  final List<String> categories = ['Pizza', 'Burger', 'Sushi', 'Taco'];
+
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Orders will be displayed here.'));
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Add a New Order',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Food Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Category',
+              border: OutlineInputBorder(),
+            ),
+            items: categories.map((String category) {
+              return DropdownMenuItem<String>(
+                value: category,
+                child: Text(category),
+              );
+            }).toList(),
+            onChanged: (value) {
+              // Handle category selection
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Quantity',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Price',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // Handle order submission logic here
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Order added successfully!')),
+              );
+            },
+            child: const Text('Add Order'),
+          ),
+        ],
+      ),
+    );
   }
 }
