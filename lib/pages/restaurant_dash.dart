@@ -360,7 +360,7 @@ class _OrdersPageState extends State<OrdersPage> {
     if (restaurantId.isNotEmpty) {
       final response = await http.get(
         Uri.parse(
-            'https://green-table-backend.onrender.com/api/food/${widget.restaurantId}'), // Get food items for this restaurant
+            'https://green-table-backend.onrender.com/api/food/$restaurantId'), // Get food items for this restaurant
       );
 
       if (response.statusCode == 200) {
@@ -396,33 +396,75 @@ class _OrdersPageState extends State<OrdersPage> {
 
   // Add a new food item listing
   Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
-    final response = await http.post(
-      Uri.parse(
-          'https://green-table-backend.onrender.com/api/food/addFood'), // Correct endpoint
-      headers: <String, String>{
-        'Content-Type':
-            'application/json; charset=UTF-8', // Ensure the content type is application/json
-      },
-      body: jsonEncode({
-        'restaurantId': restaurantId,
-        'restaurantName': restaurantName,
-        'foodItems': newFoodItem['foodItems'],
-        'description': newFoodItem['description'],
-        'price': newFoodItem['price'],
-        'quantity': newFoodItem['quantity'],
-        'expiryDate': newFoodItem['expiryDate'],
-        'timeOfCooking': newFoodItem['timeOfCooking'],
-        'category': newFoodItem['category'],
-      }),
-    );
-
-    if (response.statusCode == 201) {
-      _fetchFoodItems(); // Fetch and update after adding new food item
+    if (restaurantId.isEmpty || restaurantName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Food item added successfully!')));
-    } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to add food item')));
+        SnackBar(content: Text('Restaurant details are missing.')),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://green-table-backend.onrender.com/api/food/addFood/'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({
+          'restaurantId': restaurantId,
+          'restaurantName': restaurantName,
+          // Here we ensure that foodItems is an array (list) of food names
+          'foodItems': [
+            nameController.text
+          ], // Put the name from the controller as a single item in the list
+          'description': descriptionController.text,
+          'price': double.parse(priceController.text),
+          'quantity': int.parse(quantityController.text),
+          'expiryDate':
+              expiryDateController.text, // Ensure it's in the correct format
+          'category': categoryController.text,
+          'timeOfCooking': timeOfCookingController.text,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        _fetchFoodItems(); // Refresh the list of food items
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Food item added successfully!')),
+        );
+      } else {
+        // Log error details from response body
+        debugPrint('Failed to add food item: ${response.body}');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to add food item')));
+      }
+    } catch (e) {
+      debugPrint('Error adding food item: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred while adding food item')));
+    }
+  }
+
+  Future<void> _saveFoodItemsToLocal(
+      List<Map<String, dynamic>> foodList) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> foodItemsJson = foodList
+        .map((foodItem) => jsonEncode(foodItem))
+        .toList(); // Encode each food item to JSON string
+    await prefs.setStringList(
+        'foodItems', foodItemsJson); // Save as list of strings
+  }
+
+  Future<void> _loadFoodItemsFromLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? foodItemsJson = prefs.getStringList('foodItems');
+
+    if (foodItemsJson != null) {
+      setState(() {
+        foodItems = foodItemsJson
+            .map((foodItemJson) =>
+                jsonDecode(foodItemJson) as Map<String, dynamic>)
+            .toList();
+      });
     }
   }
 
@@ -453,30 +495,6 @@ class _OrdersPageState extends State<OrdersPage> {
       String formattedTime = pickedTime.format(context);
       timeOfCookingController.text =
           formattedTime; // Set the selected time in the controller
-    }
-  }
-
-  Future<void> _saveFoodItemsToLocal(
-      List<Map<String, dynamic>> foodList) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> foodItemsJson = foodList
-        .map((foodItem) => jsonEncode(foodItem))
-        .toList(); // Encode each food item to JSON string
-    await prefs.setStringList(
-        'foodItems', foodItemsJson); // Save as list of strings
-  }
-
-  Future<void> _loadFoodItemsFromLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String>? foodItemsJson = prefs.getStringList('foodItems');
-
-    if (foodItemsJson != null) {
-      setState(() {
-        foodItems = foodItemsJson
-            .map((foodItemJson) =>
-                jsonDecode(foodItemJson) as Map<String, dynamic>)
-            .toList();
-      });
     }
   }
 
@@ -556,31 +574,38 @@ class _OrdersPageState extends State<OrdersPage> {
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
-                  // Validate if all fields are filled
                   if (nameController.text.isEmpty ||
                       descriptionController.text.isEmpty ||
-                      categoryController.text.isEmpty ||
                       priceController.text.isEmpty ||
                       quantityController.text.isEmpty ||
-                      expiryDateController.text.isEmpty) {
+                      expiryDateController.text.isEmpty ||
+                      timeOfCookingController.text.isEmpty ||
+                      categoryController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Please fill all fields')));
                     return;
                   }
 
-                  // Get values from controllers and create a food item map
-                  Map<String, dynamic> newFoodItem = {
-                    'name': nameController.text,
-                    'description': descriptionController.text,
-                    'category': categoryController.text,
-                    'price': double.parse(priceController.text),
-                    'quantity': int.parse(quantityController.text),
-                    'expiryDate': expiryDateController.text,
-                    'timeOfCooking': timeOfCookingController.text
-                  };
+                  // Validate numbers
+                  try {
+                    final double price = double.parse(priceController.text);
+                    final int quantity = int.parse(quantityController.text);
 
-                  // Add the new food item
-                  _addFoodItem(newFoodItem);
+                    Map<String, dynamic> newFoodItem = {
+                      'name': nameController.text,
+                      'description': descriptionController.text,
+                      'category': categoryController.text,
+                      'price': price,
+                      'quantity': quantity,
+                      'expiryDate': expiryDateController.text,
+                      'timeOfCooking': timeOfCookingController.text,
+                    };
+
+                    _addFoodItem(newFoodItem); // Call add function
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Invalid number input')));
+                  }
                 },
                 child: const Text('Add Food Item'),
               ),
