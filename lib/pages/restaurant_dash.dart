@@ -367,7 +367,9 @@ class _OrdersPageState extends State<OrdersPage> {
         final List<dynamic> foods = jsonDecode(response.body);
 
         setState(() {
-          foodItems = foods.map((food) {
+          foodItems = foods.where((food) {
+            return food['restaurantId'] == restaurantId; // Compare restaurantId
+          }).map((food) {
             return {
               'restaurantName': food['restaurantName'],
               'foodItems': food['foodItems'],
@@ -384,7 +386,7 @@ class _OrdersPageState extends State<OrdersPage> {
         _saveFoodItemsToLocal(foodItems);
       } else {
         // If API call fails, load from local storage
-        _loadFoodItemsFromLocal();
+        await _loadFoodItemsFromLocal();
       }
     } else {
       // Load food items from local storage if restaurantId is empty
