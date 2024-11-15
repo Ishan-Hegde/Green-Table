@@ -502,7 +502,6 @@ class _OrdersPageState extends State<OrdersPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
-        // Wrap the entire content inside SingleChildScrollView
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -511,125 +510,93 @@ class _OrdersPageState extends State<OrdersPage> {
               Text(
                 '$restaurantName Details',
                 style:
-                    const TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              // Display user email and restaurant ID
+              const SizedBox(height: 10),
               Text(
-                'Logged-in user email: $userEmail\nRestaurant ID: $restaurantId\nRestaurant Name:$restaurantName',
+                'Logged-in user email: $userEmail\n'
+                'Restaurant ID: $restaurantId\n'
+                'Restaurant Name: $restaurantName',
                 style: const TextStyle(fontSize: 16),
               ),
-              const SizedBox(height: 20),
-
-              Text(
-                'Add New Food Listing',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-
+              const SizedBox(height: 8),
               // Form to add a new food item
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: "Food Name"),
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(labelText: "Description"),
-              ),
-              TextField(
-                controller: priceController,
-                decoration: InputDecoration(labelText: "Price"),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: quantityController,
-                decoration: InputDecoration(labelText: "Quantity"),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: expiryDateController,
-                decoration: InputDecoration(
-                  labelText: "Expiry Date",
-                  suffixIcon: Icon(Icons.calendar_today),
+              // Add New Food Listing Section
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                readOnly: true, // Prevent manual entry
-                onTap: () =>
-                    _selectDate(context), // Show date picker when tapped
-              ),
-              // Time of Cooking Picker
-              TextField(
-                controller: timeOfCookingController,
-                decoration: InputDecoration(
-                  labelText: "Time of Cooking",
-                  suffixIcon: Icon(Icons.access_time),
+                padding: const EdgeInsets.all(16.0),
+                margin: const EdgeInsets.only(bottom: 5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add New Food Listing',
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+
+                    // Form to add a new food item
+                    _buildInputField(
+                        nameController, "Food Name", Icons.fastfood),
+                    _buildInputField(
+                        descriptionController,
+                        "Description(Veg/Non-veg,Jain,Vegan etc.)",
+                        Icons.description),
+                    _buildInputField(
+                        priceController, "Price", Icons.currency_rupee,
+                        keyboardType: TextInputType.number),
+                    _buildInputField(
+                        quantityController,
+                        "Quantity(In grams/kg or Serves 2 etc.)",
+                        Icons.format_list_numbered,
+                        keyboardType: TextInputType.number),
+                    _buildDatePickerField(expiryDateController, "Expiry Date"),
+                    _buildTimePickerField(
+                        timeOfCookingController, "Time of Cooking"),
+                    _buildInputField(
+                        categoryController, "Category", Icons.category),
+
+                    ElevatedButton(
+                      onPressed: _addFoodItemHandler,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12.0, horizontal: 12.0),
+                        backgroundColor: Theme.of(context).primaryColor,
+                        textStyle: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      child: const Text('Add Food Item',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
                 ),
-                readOnly: true, // Prevent manual entry
-                onTap: () =>
-                    _selectTime(context), // Show time picker when tapped
-              ),
-              TextField(
-                controller: categoryController,
-                decoration: InputDecoration(labelText: "Category"),
               ),
 
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () {
-                  if (nameController.text.isEmpty ||
-                      descriptionController.text.isEmpty ||
-                      priceController.text.isEmpty ||
-                      quantityController.text.isEmpty ||
-                      expiryDateController.text.isEmpty ||
-                      timeOfCookingController.text.isEmpty ||
-                      categoryController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Please fill all fields')));
-                    return;
-                  }
-
-                  // Validate numbers
-                  try {
-                    final double price = double.parse(priceController.text);
-                    final int quantity = int.parse(quantityController.text);
-
-                    Map<String, dynamic> newFoodItem = {
-                      'name': nameController.text,
-                      'description': descriptionController.text,
-                      'category': categoryController.text,
-                      'price': price,
-                      'quantity': quantity,
-                      'expiryDate': expiryDateController.text,
-                      'timeOfCooking': timeOfCookingController.text,
-                    };
-
-                    _addFoodItem(newFoodItem); // Call add function
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Invalid number input')));
-                  }
-                },
-                child: const Text('Add Food Item'),
-              ),
-
-              const SizedBox(height: 10),
-              // Section for food listing
+              const SizedBox(height: 20),
               Text(
                 "Past Listings done by $restaurantId",
                 style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
 
               foodItems.isEmpty
-                  ? Center(
-                      child:
-                          CircularProgressIndicator()) // Show loading while fetching
+                  ? Center(child: CircularProgressIndicator())
                   : ListView.builder(
-                      shrinkWrap: true, // Limit the list to the available space
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
                       itemCount: foodItems.length,
                       itemBuilder: (context, index) {
                         final food = foodItems[index];
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 8),
+                          elevation: 4,
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: Column(
@@ -658,5 +625,83 @@ class _OrdersPageState extends State<OrdersPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildInputField(
+      TextEditingController controller, String labelText, IconData iconData,
+      {TextInputType keyboardType = TextInputType.text}) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            Icon(iconData, color: Theme.of(context).primaryColor),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                    labelText: labelText, border: InputBorder.none),
+                keyboardType: keyboardType,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePickerField(
+      TextEditingController controller, String labelText) {
+    return GestureDetector(
+      onTap: () => _selectDate(context),
+      child: _buildInputField(
+          controller,
+          "$labelText (Tap on the calendar icon)",
+          Icons.calendar_today), // Prevent typing
+    );
+  }
+
+  Widget _buildTimePickerField(
+      TextEditingController controller, String labelText) {
+    return GestureDetector(
+      onTap: () => _selectTime(context),
+      child: _buildInputField(controller, "$labelText (Tap on the clock icon)",
+          Icons.access_time), // Prevent typing
+    );
+  }
+
+  void _addFoodItemHandler() {
+    if (nameController.text.isEmpty ||
+        descriptionController.text.isEmpty ||
+        priceController.text.isEmpty ||
+        quantityController.text.isEmpty ||
+        expiryDateController.text.isEmpty ||
+        timeOfCookingController.text.isEmpty ||
+        categoryController.text.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
+    try {
+      final double price = double.parse(priceController.text);
+      final int quantity = int.parse(quantityController.text);
+
+      Map<String, dynamic> newFoodItem = {
+        'name': nameController.text,
+        'description': descriptionController.text,
+        'category': categoryController.text,
+        'price': price,
+        'quantity': quantity,
+        'expiryDate': expiryDateController.text,
+        'timeOfCooking': timeOfCookingController.text,
+      };
+
+      _addFoodItem(newFoodItem);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Invalid number input')));
+    }
   }
 }
