@@ -360,16 +360,14 @@ class _OrdersPageState extends State<OrdersPage> {
     if (restaurantId.isNotEmpty) {
       final response = await http.get(
         Uri.parse(
-            'https://green-table-backend.onrender.com/api/food/all'), // Get food items for this restaurant
+            'https://green-table-backend.onrender.com/api/food/${widget.restaurantId}'), // Get food items for this restaurant
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> foods = jsonDecode(response.body);
 
         setState(() {
-          foodItems = foods.where((food) {
-            return food['restaurantId'] == restaurantId; // Compare restaurantId
-          }).map((food) {
+          foodItems = foods.map((food) {
             return {
               'restaurantName': food['restaurantName'],
               'foodItems': food['foodItems'],
@@ -386,7 +384,7 @@ class _OrdersPageState extends State<OrdersPage> {
         _saveFoodItemsToLocal(foodItems);
       } else {
         // If API call fails, load from local storage
-        _loadFoodItemsFromLocal();
+        await _loadFoodItemsFromLocal();
       }
     } else {
       // Load food items from local storage if restaurantId is empty
