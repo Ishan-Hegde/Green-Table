@@ -1,11 +1,16 @@
-// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, library_prefixes, avoid_print
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, library_prefixes, avoid_print, unnecessary_nullable_for_final_variable_declarations
 
+import 'dart:convert';
+
+// ignore: unnecessary_import
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
 import 'package:green_table/pages/map_screen/map_screen.dart'; // Import the MapScreen
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:http/http.dart' as http;
 
 class ConsumerApp extends StatefulWidget {
   const ConsumerApp({super.key});
@@ -341,18 +346,16 @@ class FoodForGoodPage extends StatefulWidget {
 }
 
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
-  final List<Map<String, dynamic>> _restaurants = [
-    // Sample static data or empty list initially, data will be fetched from the backend
-  ];
-
+  final List<Map<String, dynamic>> _restaurants =
+      []; // This will be populated from the backend
   List<Map<String, dynamic>> _filteredRestaurants = [];
   late IO.Socket socket;
 
   @override
   void initState() {
     super.initState();
-    _filteredRestaurants = _restaurants; // Initialize with all restaurants
     _initializeSocket();
+    _fetchRestaurants(); // Fetch restaurants when initializing
   }
 
   void _initializeSocket() {
@@ -361,51 +364,34 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
       'transports': ['websocket'],
       'autoConnect': false,
     });
-
     socket.connect();
 
     // Listen for new food availability
     socket.on('newFoodAvailable', (data) {
       print('Received new food item: $data');
       setState(() {
-        // Check if restaurant exists by restaurantId
         String restaurantId = data['restaurantId'];
         Map<String, dynamic> restaurant = _restaurants.firstWhere(
           (r) => r['restaurantId'] == restaurantId,
-          orElse: () => {} as Map<String, dynamic>, // Default if not found
+          orElse: () => {
+            // Provide a valid fallback map
+            // return {
+            //   'restaurantId': restaurantId,
+            //   'restaurantName': data['restaurantName'],
+            //   'foodItems': [],
+            // };
+          },
         );
-        if (restaurant.isNotEmpty) {
-          // Ensure the 'foodItems' list exists and is initialized
-          if (restaurant['foodItems'] == null) {
-            restaurant['foodItems'] = [];
-          }
-          // Add the new food item
-          restaurant['foodItems'].add({
-            'name': data['name'],
-            'description': data['description'],
-            'price': data['price'],
-            'quantity': data['quantity'],
-            'expiryDate': data['expiryDate'],
-            'timeOfCooking': data['timeOfCooking'],
-          });
-        } else {
-          // If restaurant doesn't exist, create a new one
-          _restaurants.add({
-            'restaurantId': restaurantId,
-            'restaurantName': data['restaurantName'],
-            'foodItems': [
-              {
-                'name': data['name'],
-                'description': data['description'],
-                'price': data['price'],
-                'quantity': data['quantity'],
-                'expiryDate': data['expiryDate'],
-                'timeOfCooking': data['timeOfCooking'],
-              },
-            ],
-          });
-        }
-        _filteredRestaurants = _restaurants;
+
+        // Now we can safely add the food item
+        restaurant['foodItems'].add({
+          'name': data['name'],
+          'description': data['description'],
+          'price': data['price'],
+          'quantity': data['quantity'],
+          'expiryDate': data['expiryDate'],
+          'timeOfCooking': data['timeOfCooking'],
+        });
       });
     });
 
@@ -418,10 +404,34 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
     });
   }
 
+  Future<void> _fetchRestaurants() async {
+    final response = await http.get(Uri.parse(
+        'https://green-table-backend.onrender.com/api/restaurant/all'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> restaurants = jsonDecode(response.body);
+      setState(() {
+        _restaurants.addAll(restaurants.map((restaurant) {
+          return {
+            'restaurantId': restaurant['_id'],
+            'restaurantName': restaurant['name'],
+            'foodItems': restaurant['foodItems'] ??
+                [], // Ensure foodItems is initialized
+          };
+        }).toList());
+        _filteredRestaurants =
+            List.from(_restaurants); // Initialize filtered restaurants
+      });
+    } else {
+      print('Failed to load restaurants');
+    }
+  }
+
   void _filterSearchResults(String query) {
     if (query.isEmpty) {
       setState(() {
-        _filteredRestaurants = _restaurants; // Show all when query is empty
+        _filteredRestaurants =
+            List.from(_restaurants); // Show all when query is empty
       });
     } else {
       setState(() {
@@ -440,6 +450,13 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
     super.dispose();
   }
 
+  void _showFoodListings(Map<String, dynamic> restaurant) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => FoodListingsWidget(restaurant: restaurant),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -456,9 +473,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                 hintText: "Enter restaurant name",
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(18.0),
-                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
                 ),
               ),
             ),
@@ -468,20 +483,17 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color.fromARGB(
-                        255, 15, 15, 15) // Dark mode box color
-                    : Colors.white, // Light mode box color
+                    ? const Color.fromARGB(255, 15, 15, 15)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(10.0),
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF00B200)
-                            .withOpacity(0.3) // Darker shadow for dark mode
-                        : Colors.black
-                            .withOpacity(0.2), // Lighter shadow for light mode
+                        ? const Color(0xFF00B200).withOpacity(0.3)
+                        : Colors.black.withOpacity(0.2),
                     spreadRadius: 3,
                     blurRadius: 5,
-                    offset: const Offset(0, 3), // Shadow position
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
@@ -489,39 +501,29 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                 itemCount: _filteredRestaurants.length,
                 itemBuilder: (context, index) {
                   final restaurant = _filteredRestaurants[index];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListTile(
-                        leading: Image.asset(
-                          'assets/images/pizza.png', // Static image for the restaurant (you can make this dynamic)
-                          height: 50,
-                          width: 50,
-                        ),
-                        title: Text(
-                          restaurant['restaurantName']!,
-                          style: TextStyle(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
+                  return GestureDetector(
+                    onTap: () => _showFoodListings(
+                        restaurant), // Show food listings when tapped
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          leading: Image.asset(
+                            'assets/images/pizza.png',
+                            height: 50,
+                            width: 50,
+                          ),
+                          title: Text(
+                            restaurant['restaurantName']!,
+                            style: TextStyle(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.white
-                                    : Colors.black,
+                                    : Colors.black),
                           ),
                         ),
-                      ),
-                      // Display the food items for each restaurant
-                      if (restaurant['foodItems'] != null)
-                        ...restaurant['foodItems'].map<Widget>((item) {
-                          return ListTile(
-                            title: Text(item['name']),
-                            subtitle: Text(
-                                'Description: ${item['description']}, Price: \$${item['price']}'),
-                            trailing: Text('Qty: ${item['quantity']}'),
-                            onTap: () {
-                              // Navigate to food item details page (or order page)
-                            },
-                          );
-                        }).toList(),
-                    ],
+                      ],
+                    ),
                   );
                 },
               ),
@@ -533,47 +535,48 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
   }
 }
 
-// Page to show restaurant details
-class RestaurantDetailPage extends StatelessWidget {
-  final Map<String, String> restaurant;
+class FoodListingsWidget extends StatelessWidget {
+  final Map<String, dynamic> restaurant;
 
-  const RestaurantDetailPage({required this.restaurant});
+  const FoodListingsWidget({super.key, required this.restaurant});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(restaurant['name']!),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              restaurant['name']!,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${restaurant['restaurantName']} - Food Listings',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.builder(
+              itemCount: restaurant['foodItems'].length,
+              itemBuilder: (context, index) {
+                final item = restaurant['foodItems'][index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: ListTile(
+                    title: Text(item['name']),
+                    subtitle: Text(
+                        'Description: ${item['description']}, Price: \$${item['price']}'),
+                    trailing: ElevatedButton(
+                      onPressed: () {
+                        // Logic to add item to cart
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Added ${item['name']} to cart')));
+                      },
+                      child: const Text('Order'),
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 10),
-            Text(
-              restaurant['description']!,
-              style: const TextStyle(
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Items available: ${restaurant['items']}',
-              style: const TextStyle(
-                fontSize: 18,
-                color: Color(0xFF00B200),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

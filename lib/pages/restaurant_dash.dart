@@ -119,7 +119,7 @@ class _RestaurantAppState extends State<RestaurantApp> {
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.local_shipping),
-              label: 'Available Pickups',
+              label: 'Ongoing Pickups',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
