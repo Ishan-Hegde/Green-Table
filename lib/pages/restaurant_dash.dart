@@ -32,7 +32,9 @@ class _RestaurantAppState extends State<RestaurantApp> {
   final List<Widget> _widgetOptions = <Widget>[
     AvailablePickupsPage(),
     PastOrdersPage(),
-    OrdersPage(),
+    OrdersPage(
+      restaurantId: '',
+    ),
   ];
 
   void _onItemTapped(int index) {
@@ -100,7 +102,7 @@ class _RestaurantAppState extends State<RestaurantApp> {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('FooD FOR GooD'),
+          title: const Text('FooD for GooD'),
           centerTitle: true,
           shadowColor: Colors.blueAccent,
           actions: [
@@ -278,7 +280,9 @@ class PastOrdersPage extends StatelessWidget {
 
 // Page for restaurant to manage orders
 class OrdersPage extends StatefulWidget {
-  const OrdersPage({super.key});
+  final String restaurantId;
+
+  const OrdersPage({required this.restaurantId, super.key});
 
   @override
   _OrdersPageState createState() => _OrdersPageState();
@@ -287,11 +291,22 @@ class OrdersPage extends StatefulWidget {
 class _OrdersPageState extends State<OrdersPage> {
   String userEmail = '';
   String restaurantId = '';
+  String restaurantName = '';
+  List<Map<String, dynamic>> foodItems = []; // To hold food item details
+
+  // Form controllers
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController categoryController = TextEditingController();
+  final TextEditingController priceController = TextEditingController();
+  final TextEditingController quantityController = TextEditingController();
+  final TextEditingController expiryDateController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchUserDetails();
+    _fetchFoodItems(); // Fetch food items automatically from server
   }
 
   // Fetch user details (email and restaurantId) from SharedPreferences or API
@@ -316,6 +331,7 @@ class _OrdersPageState extends State<OrdersPage> {
             setState(() {
               userEmail = storedUserEmail;
               restaurantId = restaurant['_id']; // Get the restaurant ID
+              restaurantName = restaurant['name']; // Get the restaurant Name
             });
             break;
           }
@@ -325,6 +341,7 @@ class _OrdersPageState extends State<OrdersPage> {
         setState(() {
           userEmail = storedUserEmail;
           restaurantId = 'Error fetching restaurant ID';
+          restaurantName = 'Unknown Restaurant';
         });
       }
     } else {
@@ -332,18 +349,209 @@ class _OrdersPageState extends State<OrdersPage> {
       setState(() {
         userEmail = 'Unknown User';
         restaurantId = 'Unknown Restaurant';
+        restaurantName = 'Unknown Restaurant';
       });
+    }
+  }
+
+  // Fetch food items from the server
+  Future<void> _fetchFoodItems() async {
+    final response = await http.get(
+      Uri.parse(
+          'https://green-table-backend.onrender.com/api/food/$restaurantId'), // Get food items for this restaurant
+    );
+
+    if (response.statusCode == 200) {
+      // If the server returns a 200 OK response, parse the JSON data
+      final List<dynamic> foods = jsonDecode(response.body);
+
+      setState(() {
+        foodItems = foods.map((food) {
+          return {
+            'restaurantName': food['restaurantName'],
+            'foodItems': food['foodItems'],
+            'description': food['description'],
+            'expiryDate': food['expiryDate'],
+            'quantity': food['quantity'],
+            'price': food['price'],
+            'category': food['category'],
+          };
+        }).toList();
+      });
+    } else {
+      // Handle any errors while fetching food items
+      setState(() {
+        foodItems = [];
+      });
+    }
+  }
+
+  // Add a new food item listing
+  Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
+    final response = await http.post(
+      Uri.parse(
+          'https://green-table-backend.onrender.com/api/food/$restaurantId'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode({
+        'restaurantId': restaurantId,
+        'restaurantName': restaurantName, // Use restaurantName here
+        'foodItems': [
+          {
+            'name': newFoodItem['name'],
+            'description': newFoodItem['description'],
+            'category': newFoodItem['category'],
+            'price': newFoodItem['price'],
+            'quantity': newFoodItem['quantity'],
+            'expiryDate': newFoodItem['expiryDate']
+          }
+        ]
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      // If the server returns a 201 Created response, reload the food items
+      _fetchFoodItems();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Food item added successfully!')));
+    } else {
+      // Handle error while adding the food item
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to add food item')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Orders for $restaurantId")),
-      body: Center(
-        child: Text(
-          'Logged-in user email: $userEmail\nRestaurant ID: $restaurantId',
-          style: const TextStyle(fontSize: 16),
+      body: SingleChildScrollView(
+        // Wrap the entire content inside SingleChildScrollView
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$restaurantName Details',
+                style:
+                    const TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+              ),
+              // Display user email and restaurant ID
+              Text(
+                'Logged-in user email: $userEmail\nRestaurant ID: $restaurantId\nRestaurant Name:$restaurantName',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+
+              Text(
+                'Add New Food Listing',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+
+              // Form to add a new food item
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Food Name'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(labelText: 'Category'),
+              ),
+              TextField(
+                controller: priceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Price'),
+              ),
+              TextField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Quantity'),
+              ),
+              TextField(
+                controller: expiryDateController,
+                decoration: const InputDecoration(labelText: 'Expiry Date'),
+              ),
+
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  // Validate if all fields are filled
+                  if (nameController.text.isEmpty ||
+                      descriptionController.text.isEmpty ||
+                      categoryController.text.isEmpty ||
+                      priceController.text.isEmpty ||
+                      quantityController.text.isEmpty ||
+                      expiryDateController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please fill all fields')));
+                    return;
+                  }
+
+                  // Get values from controllers and create a food item map
+                  Map<String, dynamic> newFoodItem = {
+                    'name': nameController.text,
+                    'description': descriptionController.text,
+                    'category': categoryController.text,
+                    'price': double.parse(priceController.text),
+                    'quantity': int.parse(quantityController.text),
+                    'expiryDate': expiryDateController.text
+                  };
+
+                  // Add the new food item
+                  _addFoodItem(newFoodItem);
+                },
+                child: const Text('Add Food Item'),
+              ),
+
+              const SizedBox(height: 10),
+              // Section for food listing
+              Text(
+                "Food Listing for $restaurantId",
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+
+              foodItems.isEmpty
+                  ? Center(
+                      child:
+                          CircularProgressIndicator()) // Show loading while fetching
+                  : ListView.builder(
+                      shrinkWrap: true, // Limit the list to the available space
+                      itemCount: foodItems.length,
+                      itemBuilder: (context, index) {
+                        final food = foodItems[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                    "Restaurant Name: ${food['restaurantName']}",
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                                Text("Description: ${food['description']}"),
+                                Text("Category: ${food['category']}"),
+                                Text("Price: \$${food['price']}"),
+                                Text("Quantity Available: ${food['quantity']}"),
+                                Text("Expiry Date: ${food['expiryDate']}"),
+                                const SizedBox(height: 10),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ],
+          ),
         ),
       ),
     );
