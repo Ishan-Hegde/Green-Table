@@ -50,22 +50,18 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true; // Show loading indicator while making the request
     });
 
-    // Input validation
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       _showErrorDialog('Please fill out all fields.');
       setState(() {
-        _isLoading = false; // Hide loading indicator
+        _isLoading = false;
       });
       return;
     }
 
     try {
       final response = await http.post(
-        Uri.parse(Config.getLoginUrl(
-            isConsumerSelected)), // Ensure this URL points to your Render backend
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-        },
+        Uri.parse(Config.getLoginUrl(isConsumerSelected)),
+        headers: <String, String>{'Content-Type': 'application/json'},
         body: jsonEncode(<String, String>{
           'email': _emailController.text,
           'password': _passwordController.text,
@@ -73,15 +69,14 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Parse the JSON response
         final responseJson = jsonDecode(response.body);
         String token = responseJson['token'];
 
-        // Store token using shared preferences
+        // Save token and email to SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
+        await prefs.setString('userEmail', _emailController.text);
 
-        // Navigate to respective dashboard based on selection
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -91,17 +86,15 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       } else {
-        // Show an error message if the login failed
         final responseJson = jsonDecode(response.body);
         _showErrorDialog(responseJson['message'] ?? 'Login failed');
       }
     } catch (e) {
-      // Handle connection errors
       _showErrorDialog(
           'Failed to connect to the server. Please try again later. Error: $e');
     } finally {
       setState(() {
-        _isLoading = false; // Hide loading indicator after the request is done
+        _isLoading = false;
       });
     }
   }

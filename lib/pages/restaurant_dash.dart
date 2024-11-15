@@ -1,11 +1,14 @@
 // ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, unused_import, library_prefixes, avoid_print
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 class RestaurantApp extends StatefulWidget {
   const RestaurantApp({super.key});
@@ -22,41 +25,33 @@ void main() {
 }
 
 class _RestaurantAppState extends State<RestaurantApp> {
-  int _selectedIndex = 0; // Track the selected index for bottom navigation
-  bool isDarkMode = false; // Track whether dark mode is on or off
-
-  // Define the primary green color used for the app
+  int _selectedIndex = 0;
+  bool isDarkMode = false;
   Color primaryGreen = Colors.green[700]!;
 
-  // Navigation items
   final List<Widget> _widgetOptions = <Widget>[
     AvailablePickupsPage(),
     PastOrdersPage(),
-    OrdersPage(
-      restaurantId: 'Restaurant123', // Sample restaurant ID
-    ),
+    OrdersPage(),
   ];
 
   void _onItemTapped(int index) {
     setState(() {
-      _selectedIndex = index; // Update the selected index
+      _selectedIndex = index;
     });
   }
 
-  // Toggle dark mode
   void _toggleDarkMode() => setState(() => isDarkMode = !isDarkMode);
 
-  // Sign out function
   Future<void> _signOut() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token'); // Clear the token
+    await prefs.remove('token');
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
 
-  // Show confirmation dialog for sign out
   void _showSignOutConfirmation() {
     showDialog(
       context: context,
@@ -117,13 +112,7 @@ class _RestaurantAppState extends State<RestaurantApp> {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: _widgetOptions[_selectedIndex],
-            ),
-          ],
-        ),
+        body: _widgetOptions[_selectedIndex],
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
@@ -163,8 +152,7 @@ class _RestaurantAppState extends State<RestaurantApp> {
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
                 title: const Text('Sign Out'),
-                onTap:
-                    _showSignOutConfirmation, // Show confirmation dialog on tap
+                onTap: _showSignOutConfirmation,
               ),
             ],
           ),
@@ -208,8 +196,7 @@ class AvailablePickupsPage extends StatelessWidget {
 class PastOrdersPage extends StatelessWidget {
   final List<Map<String, String>> pastOrders = List.generate(5, (index) {
     return {
-      'number': (100000 + Random().nextInt(900000))
-          .toString(), // Generate a random order number.
+      'number': (100000 + Random().nextInt(900000)).toString(),
       'date': '2023-09-${index + 1}',
       'items': index % 2 == 0 ? 'Pizza, Burger' : 'Sushi, Taco',
       'status': 'Completed',
@@ -282,9 +269,7 @@ class PastOrdersPage extends StatelessWidget {
     );
   }
 
-  // Function to handle the invoice download logic
   void _downloadInvoice(BuildContext context, Map<String, String> order) {
-    // Here you can implement the logic to download the invoice
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Invoice downloaded successfully!')),
     );
@@ -293,139 +278,73 @@ class PastOrdersPage extends StatelessWidget {
 
 // Page for restaurant to manage orders
 class OrdersPage extends StatefulWidget {
-  final String restaurantId;
-  const OrdersPage({required this.restaurantId});
+  const OrdersPage({super.key});
 
   @override
   _OrdersPageState createState() => _OrdersPageState();
 }
 
 class _OrdersPageState extends State<OrdersPage> {
-  IO.Socket? socket;
-  List<Map<String, dynamic>> foodItems = []; // List to hold food items
-
-  // Sample categories (you can fetch this list from backend or API)
-  final List<String> categories = [
-    'Breakfast',
-    'Main Course',
-    'Snacks',
-    'Dinner',
-    'Desserts'
-  ];
+  String userEmail = '';
+  String restaurantId = '';
 
   @override
   void initState() {
     super.initState();
-    initializeSocket();
+    _fetchUserDetails();
   }
 
-  // Initialize socket connection and listen for food item updates
-  void initializeSocket() {
-    socket =
-        IO.io('https://green-table-backend.onrender.com', <String, dynamic>{
-      'transports': ['websocket'],
-    });
+  // Fetch user details (email and restaurantId) from SharedPreferences or API
+  Future<void> _fetchUserDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? storedUserEmail = prefs.getString('userEmail');
 
-    socket?.on('newFoodAvailable', (data) {
+    if (storedUserEmail != null) {
+      // Fetch restaurant data based on the stored email
+      final response = await http.get(
+        Uri.parse(
+            'https://green-table-backend.onrender.com/api/restaurant/all'), // Get all restaurants
+      );
+
+      if (response.statusCode == 200) {
+        // If the server returns a 200 OK response, parse the JSON data
+        final List<dynamic> restaurants = jsonDecode(response.body);
+
+        // Find the restaurant corresponding to the stored email
+        for (var restaurant in restaurants) {
+          if (restaurant['email'] == storedUserEmail) {
+            setState(() {
+              userEmail = storedUserEmail;
+              restaurantId = restaurant['_id']; // Get the restaurant ID
+            });
+            break;
+          }
+        }
+      } else {
+        // Handle any errors that might occur while fetching data
+        setState(() {
+          userEmail = storedUserEmail;
+          restaurantId = 'Error fetching restaurant ID';
+        });
+      }
+    } else {
+      // If no email is found in SharedPreferences
       setState(() {
-        foodItems.add(data); // Add new food to the list when received
+        userEmail = 'Unknown User';
+        restaurantId = 'Unknown Restaurant';
       });
-    });
-
-    socket?.on('connect', (_) {
-      print('Connected to server');
-    });
-
-    socket?.on('disconnect', (_) {
-      print('Disconnected from server');
-    });
-  }
-
-  @override
-  void dispose() {
-    socket
-        ?.dispose(); // Close the socket connection when the widget is disposed
-    super.dispose();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Add a New Order',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Food Name',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Dropdown for food selection using dynamic food items
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Select Food',
-              border: OutlineInputBorder(),
-            ),
-            items: foodItems.map((food) {
-              return DropdownMenuItem<String>(
-                value: food[
-                    'name'], // Assuming 'name' key is present in the food data
-                child: Text(food['name'] ?? 'Unnamed Food'),
-              );
-            }).toList(),
-            onChanged: (value) {
-              // Handle food selection
-            },
-          ),
-          const SizedBox(height: 16),
-          // Dropdown for category selection
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Category',
-              border: OutlineInputBorder(),
-            ),
-            items: categories.map((String category) {
-              return DropdownMenuItem<String>(
-                value: category,
-                child: Text(category),
-              );
-            }).toList(),
-            onChanged: (value) {
-              // Handle category selection
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Quantity',
-              border: OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Price',
-              border: OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // Handle order submission logic here
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Order added successfully!')),
-              );
-            },
-            child: const Text('Add Order'),
-          ),
-        ],
+    return Scaffold(
+      appBar: AppBar(title: Text("Orders for $restaurantId")),
+      body: Center(
+        child: Text(
+          'Logged-in user email: $userEmail\nRestaurant ID: $restaurantId',
+          style: const TextStyle(fontSize: 16),
+        ),
       ),
     );
   }

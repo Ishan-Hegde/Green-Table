@@ -341,24 +341,21 @@ class FoodForGoodPage extends StatefulWidget {
 }
 
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
-  final List<Map<String, String>> _restaurants = [
-    // Your restaurant list as before
+  final List<Map<String, dynamic>> _restaurants = [
+    // Sample static data or empty list initially, data will be fetched from the backend
   ];
 
-  List<Map<String, String>> _filteredRestaurants = [];
+  List<Map<String, dynamic>> _filteredRestaurants = [];
   late IO.Socket socket;
 
   @override
   void initState() {
     super.initState();
     _filteredRestaurants = _restaurants; // Initialize with all restaurants
-
-    // Initialize Socket.IO connection
     _initializeSocket();
   }
 
   void _initializeSocket() {
-    // Connect to your server URL
     socket =
         IO.io('https://green-table-backend.onrender.com', <String, dynamic>{
       'transports': ['websocket'],
@@ -367,19 +364,48 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
     socket.connect();
 
-    // Listen for updates from the server (e.g., new food offers)
-    socket.on('food_update', (data) {
-      // Update the restaurant list or do something with the data
-      print('Received food update: $data');
+    // Listen for new food availability
+    socket.on('newFoodAvailable', (data) {
+      print('Received new food item: $data');
       setState(() {
-        // Handle server response to update restaurant list
-        // For example, modify _restaurants or _filteredRestaurants
-        _restaurants.add({
-          'name': data['name'],
-          'items': data['items'],
-          'description': data['description'],
-        });
-        _filteredRestaurants = _restaurants; // Update the filtered list
+        // Check if restaurant exists by restaurantId
+        String restaurantId = data['restaurantId'];
+        Map<String, dynamic> restaurant = _restaurants.firstWhere(
+          (r) => r['restaurantId'] == restaurantId,
+          orElse: () => {} as Map<String, dynamic>, // Default if not found
+        );
+        if (restaurant.isNotEmpty) {
+          // Ensure the 'foodItems' list exists and is initialized
+          if (restaurant['foodItems'] == null) {
+            restaurant['foodItems'] = [];
+          }
+          // Add the new food item
+          restaurant['foodItems'].add({
+            'name': data['name'],
+            'description': data['description'],
+            'price': data['price'],
+            'quantity': data['quantity'],
+            'expiryDate': data['expiryDate'],
+            'timeOfCooking': data['timeOfCooking'],
+          });
+        } else {
+          // If restaurant doesn't exist, create a new one
+          _restaurants.add({
+            'restaurantId': restaurantId,
+            'restaurantName': data['restaurantName'],
+            'foodItems': [
+              {
+                'name': data['name'],
+                'description': data['description'],
+                'price': data['price'],
+                'quantity': data['quantity'],
+                'expiryDate': data['expiryDate'],
+                'timeOfCooking': data['timeOfCooking'],
+              },
+            ],
+          });
+        }
+        _filteredRestaurants = _restaurants;
       });
     });
 
@@ -400,8 +426,9 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
     } else {
       setState(() {
         _filteredRestaurants = _restaurants
-            .where((restaurant) =>
-                restaurant['name']!.toLowerCase().contains(query.toLowerCase()))
+            .where((restaurant) => restaurant['restaurantName']!
+                .toLowerCase()
+                .contains(query.toLowerCase()))
             .toList();
       });
     }
@@ -462,40 +489,39 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                 itemCount: _filteredRestaurants.length,
                 itemBuilder: (context, index) {
                   final restaurant = _filteredRestaurants[index];
-                  return ListTile(
-                    leading: Image.asset(
-                      'assets/images/pizza.png',
-                      height: 50,
-                      width: 50,
-                    ),
-                    title: Text(
-                      restaurant['name']!,
-                      style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors
-                                .black, // Explicitly set the text color for light/dark mode
-                      ),
-                    ),
-                    subtitle: Text(
-                      restaurant['items']!,
-                      style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey[300]
-                            : Colors.grey[800], // Adjust subtitle color
-                      ),
-                    ),
-                    onTap: () {
-                      // Navigate to restaurant detail page
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RestaurantDetailPage(
-                            restaurant: restaurant, // Pass restaurant data
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListTile(
+                        leading: Image.asset(
+                          'assets/images/pizza.png', // Static image for the restaurant (you can make this dynamic)
+                          height: 50,
+                          width: 50,
+                        ),
+                        title: Text(
+                          restaurant['restaurantName']!,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
                           ),
                         ),
-                      );
-                    },
+                      ),
+                      // Display the food items for each restaurant
+                      if (restaurant['foodItems'] != null)
+                        ...restaurant['foodItems'].map<Widget>((item) {
+                          return ListTile(
+                            title: Text(item['name']),
+                            subtitle: Text(
+                                'Description: ${item['description']}, Price: \$${item['price']}'),
+                            trailing: Text('Qty: ${item['quantity']}'),
+                            onTap: () {
+                              // Navigate to food item details page (or order page)
+                            },
+                          );
+                        }).toList(),
+                    ],
                   );
                 },
               ),
