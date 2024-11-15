@@ -360,7 +360,7 @@ class _OrdersPageState extends State<OrdersPage> {
     if (restaurantId.isNotEmpty) {
       final response = await http.get(
         Uri.parse(
-            'https://green-table-backend.onrender.com/api/food/$restaurantId'), // Get food items for this restaurant
+            'https://green-table-backend.onrender.com/api/food/${widget.restaurantId}'), // Get food items for this restaurant
       );
 
       if (response.statusCode == 200) {
@@ -588,7 +588,7 @@ class _OrdersPageState extends State<OrdersPage> {
               const SizedBox(height: 10),
               // Section for food listing
               Text(
-                "Food Listing for $restaurantId",
+                "Past Listings done by $restaurantId",
                 style:
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
