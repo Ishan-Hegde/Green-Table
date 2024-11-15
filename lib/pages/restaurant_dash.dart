@@ -307,7 +307,7 @@ class _OrdersPageState extends State<OrdersPage> {
   void initState() {
     super.initState();
     _fetchUserDetails();
-    _fetchFoodItems(); // Fetch food items automatically from server
+    _fetchFoodItems();
   }
 
   // Fetch user details (email and restaurantId) from SharedPreferences or API
@@ -357,33 +357,38 @@ class _OrdersPageState extends State<OrdersPage> {
 
   // Fetch food items from the server
   Future<void> _fetchFoodItems() async {
-    final response = await http.get(
-      Uri.parse(
-          'https://green-table-backend.onrender.com/api/food/$restaurantId'), // Get food items for this restaurant
-    );
+    if (restaurantId.isNotEmpty) {
+      final response = await http.get(
+        Uri.parse(
+            'https://green-table-backend.onrender.com/api/food/$restaurantId'), // Get food items for this restaurant
+      );
 
-    if (response.statusCode == 200) {
-      // If the server returns a 200 OK response, parse the JSON data
-      final List<dynamic> foods = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> foods = jsonDecode(response.body);
 
-      setState(() {
-        foodItems = foods.map((food) {
-          return {
-            'restaurantName': food['restaurantName'],
-            'foodItems': food['foodItems'],
-            'description': food['description'],
-            'expiryDate': food['expiryDate'],
-            'quantity': food['quantity'],
-            'price': food['price'],
-            'category': food['category'],
-          };
-        }).toList();
-      });
+        setState(() {
+          foodItems = foods.map((food) {
+            return {
+              'restaurantName': food['restaurantName'],
+              'foodItems': food['foodItems'],
+              'description': food['description'],
+              'expiryDate': food['expiryDate'],
+              'quantity': food['quantity'],
+              'price': food['price'],
+              'category': food['category'],
+            };
+          }).toList();
+        });
+
+        // Save the food items to local storage
+        _saveFoodItemsToLocal(foodItems);
+      } else {
+        // If API call fails, load from local storage
+        _loadFoodItemsFromLocal();
+      }
     } else {
-      // Handle any errors while fetching food items
-      setState(() {
-        foodItems = [];
-      });
+      // Load food items from local storage if restaurantId is empty
+      _loadFoodItemsFromLocal();
     }
   }
 
@@ -397,29 +402,23 @@ class _OrdersPageState extends State<OrdersPage> {
             'application/json; charset=UTF-8', // Ensure the content type is application/json
       },
       body: jsonEncode({
-        'restaurantId':
-            restaurantId, // Ensure this is dynamically set with the correct restaurantId
-        'restaurantName': restaurantName, // Dynamically set restaurant name
-        'foodItems': newFoodItem[
-            'foodItems'], // This should be an array, e.g. ["Pizza", "Burger", "Pasta"]
-        'description':
-            newFoodItem['description'], // Description from user input
-        'price': newFoodItem['price'], // Price from user input
-        'quantity': newFoodItem['quantity'], // Quantity from user input
-        'expiryDate': newFoodItem['expiryDate'], // Expiry date (in ISO format)
-        'timeOfCooking':
-            newFoodItem['timeOfCooking'], // Time of cooking (in ISO format)
-        'category': newFoodItem['category'], // Category from user input
+        'restaurantId': restaurantId,
+        'restaurantName': restaurantName,
+        'foodItems': newFoodItem['foodItems'],
+        'description': newFoodItem['description'],
+        'price': newFoodItem['price'],
+        'quantity': newFoodItem['quantity'],
+        'expiryDate': newFoodItem['expiryDate'],
+        'timeOfCooking': newFoodItem['timeOfCooking'],
+        'category': newFoodItem['category'],
       }),
     );
 
     if (response.statusCode == 201) {
-      // If the server returns a 201 Created response, reload the food items to reflect the new food item
-      _fetchFoodItems(); // Fetch food items after adding the new one
+      _fetchFoodItems(); // Fetch and update after adding new food item
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Food item added successfully!')));
     } else {
-      // Handle error while adding the food item
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Failed to add food item')));
     }
@@ -452,6 +451,30 @@ class _OrdersPageState extends State<OrdersPage> {
       String formattedTime = pickedTime.format(context);
       timeOfCookingController.text =
           formattedTime; // Set the selected time in the controller
+    }
+  }
+
+  Future<void> _saveFoodItemsToLocal(
+      List<Map<String, dynamic>> foodList) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> foodItemsJson = foodList
+        .map((foodItem) => jsonEncode(foodItem))
+        .toList(); // Encode each food item to JSON string
+    await prefs.setStringList(
+        'foodItems', foodItemsJson); // Save as list of strings
+  }
+
+  Future<void> _loadFoodItemsFromLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? foodItemsJson = prefs.getStringList('foodItems');
+
+    if (foodItemsJson != null) {
+      setState(() {
+        foodItems = foodItemsJson
+            .map((foodItemJson) =>
+                jsonDecode(foodItemJson) as Map<String, dynamic>)
+            .toList();
+      });
     }
   }
 
@@ -550,7 +573,8 @@ class _OrdersPageState extends State<OrdersPage> {
                     'category': categoryController.text,
                     'price': double.parse(priceController.text),
                     'quantity': int.parse(quantityController.text),
-                    'expiryDate': expiryDateController.text
+                    'expiryDate': expiryDateController.text,
+                    'timeOfCooking': timeOfCookingController.text
                   };
 
                   // Add the new food item
@@ -593,6 +617,8 @@ class _OrdersPageState extends State<OrdersPage> {
                                 Text("Price: \$${food['price']}"),
                                 Text("Quantity Available: ${food['quantity']}"),
                                 Text("Expiry Date: ${food['expiryDate']}"),
+                                Text(
+                                    "Time of Cooking: ${food['timeOfCooking']}"),
                                 const SizedBox(height: 10),
                               ],
                             ),
