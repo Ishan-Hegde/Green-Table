@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, unused_import, library_prefixes, avoid_print
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, unused_import, library_prefixes, avoid_print, unused_element
 
 import 'dart:convert';
 import 'dart:io';
@@ -301,6 +301,7 @@ class _OrdersPageState extends State<OrdersPage> {
   final TextEditingController priceController = TextEditingController();
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController expiryDateController = TextEditingController();
+  final TextEditingController timeOfCookingController = TextEditingController();
 
   @override
   void initState() {
@@ -390,35 +391,67 @@ class _OrdersPageState extends State<OrdersPage> {
   Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
     final response = await http.post(
       Uri.parse(
-          'https://green-table-backend.onrender.com/api/food/$restaurantId'),
+          'https://green-table-backend.onrender.com/api/food/addFood'), // Correct endpoint
       headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
+        'Content-Type':
+            'application/json; charset=UTF-8', // Ensure the content type is application/json
       },
       body: jsonEncode({
-        'restaurantId': restaurantId,
-        'restaurantName': restaurantName, // Use restaurantName here
-        'foodItems': [
-          {
-            'name': newFoodItem['name'],
-            'description': newFoodItem['description'],
-            'category': newFoodItem['category'],
-            'price': newFoodItem['price'],
-            'quantity': newFoodItem['quantity'],
-            'expiryDate': newFoodItem['expiryDate']
-          }
-        ]
+        'restaurantId':
+            restaurantId, // Ensure this is dynamically set with the correct restaurantId
+        'restaurantName': restaurantName, // Dynamically set restaurant name
+        'foodItems': newFoodItem[
+            'foodItems'], // This should be an array, e.g. ["Pizza", "Burger", "Pasta"]
+        'description':
+            newFoodItem['description'], // Description from user input
+        'price': newFoodItem['price'], // Price from user input
+        'quantity': newFoodItem['quantity'], // Quantity from user input
+        'expiryDate': newFoodItem['expiryDate'], // Expiry date (in ISO format)
+        'timeOfCooking':
+            newFoodItem['timeOfCooking'], // Time of cooking (in ISO format)
+        'category': newFoodItem['category'], // Category from user input
       }),
     );
 
     if (response.statusCode == 201) {
-      // If the server returns a 201 Created response, reload the food items
-      _fetchFoodItems();
+      // If the server returns a 201 Created response, reload the food items to reflect the new food item
+      _fetchFoodItems(); // Fetch food items after adding the new one
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Food item added successfully!')));
     } else {
       // Handle error while adding the food item
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Failed to add food item')));
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    // Show DatePicker to select expiry date
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(), // Default to current date
+      firstDate: DateTime(2000), // Earliest date
+      lastDate: DateTime(2101), // Latest date
+    );
+    if (pickedDate != null && pickedDate != DateTime.now()) {
+      // Format the selected date to ISO string format
+      String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+      expiryDateController.text =
+          formattedDate; // Set the selected date in the controller
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    // Show TimePicker to select time of cooking
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(), // Default to current time
+    );
+    if (pickedTime != null) {
+      // Format the selected time to HH:mm format
+      String formattedTime = pickedTime.format(context);
+      timeOfCookingController.text =
+          formattedTime; // Set the selected time in the controller
     }
   }
 
@@ -453,29 +486,46 @@ class _OrdersPageState extends State<OrdersPage> {
               // Form to add a new food item
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Food Name'),
+                decoration: InputDecoration(labelText: "Food Name"),
               ),
               TextField(
                 controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-              ),
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(labelText: 'Category'),
+                decoration: InputDecoration(labelText: "Description"),
               ),
               TextField(
                 controller: priceController,
+                decoration: InputDecoration(labelText: "Price"),
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Price'),
               ),
               TextField(
                 controller: quantityController,
+                decoration: InputDecoration(labelText: "Quantity"),
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Quantity'),
               ),
               TextField(
                 controller: expiryDateController,
-                decoration: const InputDecoration(labelText: 'Expiry Date'),
+                decoration: InputDecoration(
+                  labelText: "Expiry Date",
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                readOnly: true, // Prevent manual entry
+                onTap: () =>
+                    _selectDate(context), // Show date picker when tapped
+              ),
+              // Time of Cooking Picker
+              TextField(
+                controller: timeOfCookingController,
+                decoration: InputDecoration(
+                  labelText: "Time of Cooking",
+                  suffixIcon: Icon(Icons.access_time),
+                ),
+                readOnly: true, // Prevent manual entry
+                onTap: () =>
+                    _selectTime(context), // Show time picker when tapped
+              ),
+              TextField(
+                controller: categoryController,
+                decoration: InputDecoration(labelText: "Category"),
               ),
 
               const SizedBox(height: 10),
