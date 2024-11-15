@@ -374,7 +374,6 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
         Map<String, dynamic> restaurant = _restaurants.firstWhere(
           (r) => r['restaurantId'] == restaurantId,
           orElse: () => {
-            // Provide a valid fallback map
             // return {
             //   'restaurantId': restaurantId,
             //   'restaurantName': data['restaurantName'],
@@ -427,6 +426,44 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
     }
   }
 
+  Future<void> _fetchFoodListings(String restaurantId) async {
+    final response = await http.get(Uri.parse(
+        'https://green-table-backend.onrender.com/api/food/$restaurantId'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> foodItems = jsonDecode(response.body);
+
+      setState(() {
+        final Map<String, dynamic>? restaurant = _restaurants.firstWhere(
+          (r) => r['restaurantId'] == restaurantId,
+          orElse: () => {
+            // return {
+            //   'restaurantId': restaurantId,
+            //   'restaurantName': '', // Default name or leave empty
+            //   'foodItems': [],
+            // };
+          },
+        );
+
+        if (restaurant != null) {
+          restaurant['foodItems'] = foodItems; // Update with fetched food items
+        }
+      });
+    } else {
+      print('Failed to load food items for restaurant $restaurantId');
+    }
+  }
+
+  void _showFoodListings(Map<String, dynamic> restaurant) {
+    // Fetch food items for the selected restaurant before showing them
+    _fetchFoodListings(restaurant['restaurantId']);
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => FoodListingsWidget(restaurant: restaurant),
+    );
+  }
+
   void _filterSearchResults(String query) {
     if (query.isEmpty) {
       setState(() {
@@ -448,13 +485,6 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
   void dispose() {
     socket.disconnect();
     super.dispose();
-  }
-
-  void _showFoodListings(Map<String, dynamic> restaurant) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => FoodListingsWidget(restaurant: restaurant),
-    );
   }
 
   @override
