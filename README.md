@@ -1,96 +1,117 @@
-**Green Table**
+# 🌱 Green Table
 
-Green Table is a SaaS application designed to reduce food wastage by connecting sources of surplus food with individuals and organizations in need. The platform facilitates the listing of leftover food, coordinates mediator pickups, and utilizes geolocation to streamline food distribution between producers and consumers. Users receive real-time updates and notifications about food availability and pickup schedules.
-Features
+Green Table is a **SaaS application** designed to **reduce food wastage** by connecting sources of surplus food with individuals and organizations in need. The platform facilitates **food listings, mediator pickups, and geolocation-based distribution**, ensuring that no food goes to waste. Users receive **real-time updates and notifications** about food availability and pickup schedules. 🍽️
 
-    Food Listing: Users can list surplus food items available for donation or sale.
-    Mediator Coordination: The app connects donors with mediators who facilitate the pickup and delivery of food items.
-    Geolocation Integration: Utilizes geolocation to match donors and recipients based on proximity, ensuring efficient distribution.
-    Real-Time Updates: Provides instant notifications about food availability, pickup schedules, and delivery statuses.
-    User Authentication: Secure login and registration system for all users.
-    Profile Management: Allows users to manage their profiles, including contact information and preferences.
-    History Tracking: Users can view their past donations, pickups, and received items.
-**
-Getting Started
-Prerequisites**
+---
 
-    Flutter SDK: Ensure that Flutter is installed on your system. You can download it from the official Flutter website.
-    Dart SDK: Dart comes bundled with Flutter, but ensure it's up to date.
-    Integrated Development Environment (IDE): It's recommended to use Android Studio or Visual Studio Code with Flutter and Dart plugins installed.
+## 🚀 Features
 
-Installation
+✅ **Food Listing** - Users can list surplus food items for donation or sale.
+✅ **Mediator Coordination** - Connects donors with mediators for efficient pickup and delivery.
+✅ **Geolocation Integration** - Matches donors and recipients based on location for seamless distribution.
+✅ **Real-Time Updates** - Instant notifications about food availability and pickup schedules.
+✅ **User Authentication** - Secure login and registration system.
+✅ **Profile Management** - Manage user profiles with preferences and contact details.
+✅ **History Tracking** - View past donations, pickups, and received items.
 
-    Clone the Repository:
+---
 
-git clone https://github.com/Ishan-Hegde/Green-Table.git
-cd Green-Table
+## 🛠️ Getting Started
 
-Install Dependencies:
+### 📌 Prerequisites
 
-Run the following command to install the necessary packages:
+Before you begin, ensure you have the following installed:
 
-flutter pub get
+- **Flutter SDK** - [Download Flutter](https://flutter.dev/docs/get-started/install)
+- **Dart SDK** - Comes with Flutter, ensure it's updated.
+- **IDE** - [Android Studio](https://developer.android.com/studio) or [VS Code](https://code.visualstudio.com/) with Flutter & Dart plugins.
 
-Run the Application:
+### 📥 Installation
 
-Connect your device or start an emulator, then execute:
+1️⃣ **Clone the Repository**
+   ```bash
+   git clone https://github.com/Ishan-Hegde/Green-Table.git
+   cd Green-Table
+   ```
 
-    flutter run
+2️⃣ **Install Dependencies**
+   ```bash
+   flutter pub get
+   ```
 
-Usage
+3️⃣ **Run the Application**
+   ```bash
+   flutter run
+   ```
 
-Green Table is designed for users who either have surplus food to donate/sell or are seeking to acquire such food. The application serves as a bridge between these users, ensuring efficient and timely distribution of food resources.
-For Donors:
+---
 
-    Sign Up / Log In: Create an account or log in to your existing account.
-    List Surplus Food: Navigate to the "Add Listing" section and provide details about the food items you wish to donate or sell, including quantity, description, and pickup location.
-    Manage Listings: View, edit, or delete your active listings as needed.
-    Coordinate with Mediators: Once a mediator is assigned, communicate with them to arrange pickup details.
-    Track Donations: Monitor the status of your listed items and receive notifications upon successful pickups.
+## 🎯 Usage
 
-For Recipients:
+### 🍲 For Donors:
+1. **Sign Up / Log In** to create an account.
+2. **List Surplus Food** by adding details and pickup location.
+3. **Manage Listings** - View, edit, or delete active listings.
+4. **Coordinate with Mediators** for efficient pickups.
+5. **Track Donations** and receive notifications on food collection.
 
-    Sign Up / Log In: Create an account or log in to your existing account.
-    Browse Available Listings: View a list of available food items based on your location.
-    Request Items: Select desired items and send a request to the donor.
-    Coordinate Pickup: Once approved, coordinate with the mediator or donor for pickup details.
-    Provide Feedback: After receiving the items, provide feedback to help improve the platform.
+### 🏡 For Recipients:
+1. **Sign Up / Log In** to access available listings.
+2. **Browse Listings** based on your location.
+3. **Request Items** and send a request to donors.
+4. **Coordinate Pickup** details with the donor or mediator.
+5. **Provide Feedback** to improve the platform.
 
-Project Structure
+---
 
-The project follows a structured directory layout:
+## 📂 Project Structure
 
-    lib/: Contains the main source code.
-        main.dart: Entry point of the application.
-        models/: Data models used throughout the app.
-        screens/: UI screens for different parts of the app.
-        services/: Backend services like authentication, database interactions, etc.
-        widgets/: Reusable UI components.
-    assets/: Contains images, fonts, and other assets.
-    test/: Contains unit and widget tests.
+📁 **lib/** - Main source code
+  - 📜 **main.dart** - Entry point of the application
+  - 📂 **models/** - Data models
+  - 📂 **screens/** - UI screens
+  - 📂 **services/** - Backend interactions (e.g., authentication, database)
+  - 📂 **widgets/** - Reusable UI components
 
-Contributing
+📁 **assets/** - Images, fonts, and assets
+📁 **test/** - Unit and widget tests
 
-We welcome contributions to enhance Green Table. To contribute:
+---
 
-    Fork the Repository: Click on the 'Fork' button at the top right of the repository page.
+## 🤝 Contributing
 
-    Create a New Branch: Use a descriptive name for your branch.
+We welcome contributions! Follow these steps:
 
-git checkout -b feature/YourFeatureName
+1️⃣ **Fork the Repository**
+2️⃣ **Create a New Branch**
+   ```bash
+   git checkout -b feature/YourFeatureName
+   ```
+3️⃣ **Make Changes & Commit**
+   ```bash
+   git commit -m "Description of your feature or fix"
+   ```
+4️⃣ **Push to Branch & Open a PR**
+   ```bash
+   git push origin feature/YourFeatureName
+   ```
+5️⃣ **Submit a Pull Request** 🎉
 
-Make Changes: Implement your feature or fix.
+---
 
-Commit Changes: Write clear and concise commit messages.
+## 📝 License
 
-git commit -m 'Description of your feature or fix'
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
 
-Push to Branch:
+---
 
-    git push origin feature/YourFeatureName
+## 📬 Contact
 
-    Create a Pull Request: Navigate to the original repository and open a pull request with a detailed description of your changes.
+💡 **Ishan Hegde**  
+🔗 [Portfolio](https://ishanhegde.netlify.app/)  
+📧 [Email](mailto:your-email@example.com)  
 
-License
+---
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+🌍 *Join us in the fight against food wastage! Every meal counts.* 🍏🥗
+
