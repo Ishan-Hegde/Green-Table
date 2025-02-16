@@ -7,11 +7,17 @@ Green Table is a **SaaS application** designed to **reduce food wastage** by con
 ## 🚀 Features
 
 ✅ **Food Listing** - Users can list surplus food items for donation or sale.
+
 ✅ **Mediator Coordination** - Connects donors with mediators for efficient pickup and delivery.
+
 ✅ **Geolocation Integration** - Matches donors and recipients based on location for seamless distribution.
+
 ✅ **Real-Time Updates** - Instant notifications about food availability and pickup schedules.
+
 ✅ **User Authentication** - Secure login and registration system.
+
 ✅ **Profile Management** - Manage user profiles with preferences and contact details.
+
 ✅ **History Tracking** - View past donations, pickups, and received items.
 
 ---
