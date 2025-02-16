@@ -1,6 +1,8 @@
 # 🌱 Green Table
 
-Green Table is a **SaaS application** designed to **reduce food wastage** by connecting sources of surplus food with individuals and organizations in need. The platform facilitates **food listings, mediator pickups, and geolocation-based distribution**, ensuring that no food goes to waste. Users receive **real-time updates and notifications** about food availability and pickup schedules. 🍽️
+Green Table is a **SaaS application** designed to **reduce food wastage** by connecting sources of surplus food with individuals and organizations in need. 
+
+The platform facilitates **food listings, mediator pickups, and geolocation-based distribution**, ensuring that no food goes to waste. Users receive **real-time updates and notifications** about food availability and pickup schedules. 🍽️
 
 ---
 
@@ -115,7 +117,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 💡 **Ishan Hegde**  
 🔗 [Portfolio](https://ishanhegde.netlify.app/)  
-📧 [Email](mailto:your-email@example.com)  
+📧 [Email](mailto:hegdeishan10@gmail.com)  
 
 ---
 
