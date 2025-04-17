@@ -1,7 +1,7 @@
 // routes/restaurant.js
 const express = require('express');
 const router = express.Router();
-const Restaurant = require('../models/Restaurant');
+const Restaurant = require('../models/restaurantModel');
 
 // Register Restaurant Endpoint (existing code)
 router.post('/register', async (req, res) => {

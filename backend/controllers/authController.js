@@ -5,7 +5,7 @@ const OTP = require('../models/OTP');
 const sendOTP = require('../utils/mailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { generateOTP, verifyOTP } = require('../utils/otpService');
+const { generateOTP, verifyOTP } = require('../utils/mailer');
 
 // Restaurant Registration
 exports.registerRestaurant = async (req, res) => {

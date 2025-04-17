@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const OTP = require('../models/OTP');
 
 const transporter = nodemailer.createTransport({
     service: 'Gmail',
@@ -24,4 +25,11 @@ const sendOTP = async (email, otp) => {
     }
 };
 
-module.exports = sendOTP;
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000);
+
+const verifyOTP = async (email, otp) => {
+  const record = await OTP.findOne({ email, otp }).exec();
+  return !!record;
+};
+
+module.exports = { sendOTP, generateOTP, verifyOTP };

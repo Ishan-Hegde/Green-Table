@@ -20,6 +20,13 @@ const io = new Server(server, {
   }
 });
 
+const authRoutes = require('./routes/authRoutes');
+const kycRoutes = require('./routes/kycRoutes');
+const foodRoutes = require('./routes/foodRoutes');
+const restaurantRoutes = require('./routes/restaurantRoutes');
+const consumerRoutes = require('./routes/consumer');
+const locationRoutes = require('./routes/locationRoutes');
+
 const PORT = process.env.PORT || 5000;
 
 // Middleware
