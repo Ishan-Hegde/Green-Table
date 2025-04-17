@@ -100,7 +100,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<String> _getAddressFromLatLng(LatLng location) async {
-    final apiKey = 'YOUR_GOOGLE_API_KEY'; // Replace with your Google API Key
+    final apiKey = 'AIzaSyDNdM7R0dcqvV8BW8nigVS3bwgSjc3A-RQ'; // Replace with your Google API Key
     final url =
         'https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.latitude},${location.longitude}&key=$apiKey';
 

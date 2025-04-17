@@ -437,7 +437,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://green-table-backend.onrender.com/api/food/addFood/'),
+        Uri.parse('https://green-table-backend.onrender.com/api/food/add'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -445,9 +445,7 @@ class _OrdersPageState extends State<OrdersPage> {
           'restaurantId': restaurantId,
           'restaurantName': restaurantName,
           // Here we ensure that foodItems is an array (list) of food names
-          'foodItems': [
-            nameController.text
-          ], // Put the name from the controller as a single item in the list
+          'name': nameController.text, // Put the name from the controller as a single item in the list
           'description': descriptionController.text,
           'price': double.parse(priceController.text),
           'quantity': int.parse(quantityController.text),
