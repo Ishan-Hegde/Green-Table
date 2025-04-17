@@ -1,9 +1,11 @@
 const User = require('../models/User');
 const Restaurant = require('../models/restaurantModel');
+const Consumer = require('../models/Consumer');
 const OTP = require('../models/OTP');
 const sendOTP = require('../utils/mailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { generateOTP, verifyOTP } = require('../utils/otpService');
 
 // Restaurant Registration
 exports.registerRestaurant = async (req, res) => {
@@ -36,17 +38,18 @@ exports.registerRestaurant = async (req, res) => {
 // Verify OTP
 exports.verifyOTP = async (req, res) => {
     try {
-        const { email, otp } = req.body;
-        const otpRecord = await OTP.findOne({ email, otp });
+        const { email, otp, userType } = req.body;
+        const isValid = await verifyOTP(email, otp);
 
-        if (!otpRecord) {
+        if (!isValid) {
             return res.status(400).json({ message: "Invalid OTP or OTP expired." });
         }
 
-        await OTP.deleteOne({ email });
-
-        await User.updateOne({ email }, { isVerified: true });
-        await Restaurant.updateOne({ email }, { isVerified: true });
+        if (userType === 'donor') {
+            await Restaurant.updateOne({ email }, { isVerified: true });
+        } else if (userType === 'consumer') {
+            await Consumer.updateOne({ email }, { isVerified: true });
+        }
 
         res.status(200).json({ message: "OTP verified successfully. Registration complete." });
     } catch (error) {
@@ -109,8 +112,11 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: "Invalid credentials." });
 
-        if (restaurant && !restaurant.isKYCVerified) {
-            return res.status(403).json({ message: "KYC not verified. Please upload your documents." });
+        if (restaurant && (!restaurant.isKYCVerified || restaurant.kycStatus !== 'verified')) {
+            return res.status(403).json({ 
+              message: "KYC verification required. Please complete verification process.",
+              nextStep: "/kyc-upload"
+            });
         }
 
         if (consumer && !consumer.isVerified) {
@@ -146,10 +152,23 @@ exports.uploadKYC = async (req, res) => {
 
         // Storing file path in the database
         restaurant.kycDocument = req.file.path;
-        restaurant.kycStatus = "pending"; // KYC pending review
-        await restaurant.save();
+        // Simulate KYC verification API call
+        const verificationResult = await verifyKYCDocument({
+  documentPath: req.file.path,
+  apiKey: process.env.KYC_API_KEY,
+  endpoint: process.env.KYC_API_ENDPOINT
+});
 
-        return res.status(200).json({ message: "KYC uploaded successfully. Awaiting verification." });
+        if (verificationResult.status === 'verified') {
+          restaurant.isKYCVerified = true;
+          restaurant.kycStatus = "verified";
+          await restaurant.save();
+          return res.status(200).json({ message: "KYC verification completed successfully." });
+        } else {
+          restaurant.kycStatus = "rejected";
+          await restaurant.save();
+          return res.status(400).json({ message: "KYC verification failed. Please submit valid documents." });
+        }
     } catch (error) {
         console.error("Error in uploadKYC:", error);
         return res.status(500).json({ message: "Internal Server Error" });

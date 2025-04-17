@@ -2,6 +2,22 @@
 import 'package:flutter/foundation.dart';
 
 class FoodItem {
+  factory FoodItem.fromMap(Map<String, dynamic> map) {
+    return FoodItem(
+      id: map['_id'] ?? '',
+      name: map['name'] ?? 'Unnamed Item',
+      description: map['description'] ?? '',
+      price: (map['price'] ?? 0.0).toDouble(),
+      quantity: (map['quantity'] ?? 0).toInt(),
+      expiryDate: DateTime.parse(map['expiryDate'] ?? DateTime.now().toIso8601String()),
+      timeOfCooking: DateTime.parse(map['timeOfCooking'] ?? DateTime.now().toIso8601String()),
+      restaurantId: map['restaurantId'] ?? '',
+      restaurantName: map['restaurantName'] ?? '',
+      imageUrl: map['imageUrl'] ?? '',
+      isAvailable: map['isAvailable'] ?? true,
+    );
+  }
+
   final String id;
   final String name;
   final String description;
@@ -14,7 +30,7 @@ class FoodItem {
   final String imageUrl;
   final bool isAvailable;
 
-  FoodItem({
+  const FoodItem({
     required this.id,
     required this.name,
     required this.description,
@@ -24,7 +40,7 @@ class FoodItem {
     required this.timeOfCooking,
     required this.restaurantId,
     required this.restaurantName,
-    this.imageUrl = '',
+    required this.imageUrl,
     this.isAvailable = true,
   });
 
@@ -40,7 +56,6 @@ class FoodItem {
       restaurantId: json['restaurantId'] ?? '',
       restaurantName: json['restaurantName'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
-      isAvailable: json['isAvailable'] ?? true,
     );
   }
 

@@ -3,8 +3,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:green_table/widgets/food_listing_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../models/food_item.dart';
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
 import 'package:intl/intl.dart';
@@ -289,6 +291,36 @@ class OrdersPage extends StatefulWidget {
 }
 
 class _OrdersPageState extends State<OrdersPage> {
+  void _navigateToFoodDetail(Map<String, dynamic> foodItem) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text(foodItem['name'])),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Description: ${foodItem['description']}'),
+                Text('Price: ${foodItem['price']}'),
+                Text('Quantity: ${foodItem['quantity']}'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleAddToCart(Map<String, dynamic> foodItem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${foodItem['name']} added to cart!'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
   String userEmail = '';
   String restaurantId = '';
   String restaurantName = '';
@@ -594,38 +626,20 @@ class _OrdersPageState extends State<OrdersPage> {
                       itemCount: foodItems.length,
                       itemBuilder: (context, index) {
                         final food = foodItems[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          elevation: 4,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                    "Restaurant Name: ${food['restaurantName']}",
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                                Text("Description: ${food['description']}"),
-                                Text("Category: ${food['category']}"),
-                                Text("Price: \$${food['price']}"),
-                                Text("Quantity Available: ${food['quantity']}"),
-                                Text("Expiry Date: ${food['expiryDate']}"),
-                                Text(
-                                    "Time of Cooking: ${food['timeOfCooking']}"),
-                                const SizedBox(height: 10),
-                              ],
-                            ),
-                          ),
+                        return FoodListingCard(
+                          foodItem: FoodItem.fromMap(food),
+                          onTap: () => _navigateToFoodDetail(food),
+                          onAddToCart: () => _handleAddToCart(food),
+                          textStyle: Theme.of(context).textTheme.bodyMedium!,
                         );
-                      },
+                            },
+                          )],
                     ),
-            ],
-          ),
-        ),
-      ),
-    );
+                  ),
+                ),
+              ); 
   }
+
 
   Widget _buildInputField(
       TextEditingController controller, String labelText, IconData iconData,

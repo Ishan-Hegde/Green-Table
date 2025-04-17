@@ -95,4 +95,16 @@ class FoodListingService {
       throw Exception('Error searching food listings: $e');
     }
   }
+
+  Future<Map<String, dynamic>> getFoodItemWithOrders(String foodId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/food/$foodId/orders'));
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      throw Exception('Failed to load food item orders');
+    } catch (e) {
+      throw Exception('Food order tracking error: $e');
+    }
+  }
 }

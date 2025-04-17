@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:green_table/models/food_item.dart';
 import 'package:intl/intl.dart';
+// ignore: unused_import
+import 'package:green_table/services/order_service.dart';
 
 class FoodListingCard extends StatelessWidget {
   final FoodItem foodItem;
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
+  final TextStyle textStyle;
 
   const FoodListingCard({
     super.key,
-// Remove duplicate key parameter since it's already defined in super.key
     required this.foodItem,
     this.onTap,
     this.onAddToCart,
+    required this.textStyle,
   });
 
   // ignore: empty_constructor_bodies

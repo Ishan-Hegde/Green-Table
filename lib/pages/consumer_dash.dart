@@ -5,6 +5,7 @@ import 'dart:convert';
 // ignore: unnecessary_import
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
@@ -129,7 +130,7 @@ class _ConsumerAppState extends State<ConsumerApp> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => MapScreen()),
+                    MaterialPageRoute(builder: (context) => MapScreen(initialPosition: LatLng(19.0760, 72.8777))),
                   );
                 },
               ),

@@ -1,25 +1,29 @@
 //Server.js
 
-require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 const cors = require('cors');
-const bodyParser = require('body-parser');
+const http = require('http');
+const { Server } = require('socket.io');
 
-// Import all routes
-const authRoutes = require('./routes/authRoutes');
-const kycRoutes = require('./routes/kycRoutes');
-const foodRoutes = require('./routes/food');
-const restaurantRoutes = require('./routes/restaurant');
-const consumerRoutes = require('./routes/consumer');
-const locationRoutes = require('./routes/locationRoutes');
+// Load environment variables
+dotenv.config();
 
+// Create Express app
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL,
+    methods: ['GET', 'POST']
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Needed for form-data text fields
 
@@ -42,4 +46,18 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// WebSocket connection handler
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+  
+  socket.on('joinOrderRoom', (orderId) => {
+    socket.join(orderId);
+    console.log(`Socket ${socket.id} joined order room ${orderId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
+
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
