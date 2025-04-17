@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'package:green_table/config.dart';
 import 'package:http/http.dart' as http;
 import 'package:green_table/models/food_item.dart';
 
 class FoodListingService {
-  static const String baseUrl = 'https://green-table-backend.onrender.com/api';
+  static const String baseUrl = Config.baseUrl;
 
   // Get all food listings
   Future<List<FoodItem>> getAllFoodListings() async {
@@ -37,7 +38,7 @@ class FoodListingService {
   Future<FoodItem> createFoodListing(FoodItem foodItem) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/food/add'),
+        Uri.parse(Config.addFoodListing),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(foodItem.toJson()),
       );

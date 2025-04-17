@@ -3,7 +3,7 @@ const { updateLocation, getUserLocation } = require('../controllers/locationCont
 
 const router = express.Router();
 
-router.post('/update', updateLocation);
-router.get('/:userId', getUserLocation);
+router.post('/location/update', updateLocation);
+router.get('/location', getUserLocation);
 
 module.exports = router;

@@ -1,11 +1,15 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
+const foodRoutes = require('./foodRoutes');
+const locationRoutes = require('./locationRoutes');
 const orderRoutes = require('./orderRoutes');
 
 const app = express();
 app.use(express.json());
 
 app.use('/auth', authRoutes);
+app.use('/api/food', foodRoutes);
+app.use('/api/location', locationRoutes);
 app.use('/api/orders', orderRoutes);
 
 const PORT = process.env.PORT || 5000;

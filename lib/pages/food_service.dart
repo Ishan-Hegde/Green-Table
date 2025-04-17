@@ -1,14 +1,14 @@
 import 'dart:convert';
+import 'package:green_table/config.dart';
 import 'package:http/http.dart' as http;
 
 class FoodService {
   // Replace with the actual URL of your backend API
-  final String baseUrl = 'https://green-table-backend.onrender.com';
+  final String baseUrl = Config.baseUrl;
 
   Future<List<dynamic>> getFoodListings(String restaurantId) async {
     final response = await http.get(
-      Uri.parse(
-          '$baseUrl/api/food/$restaurantId'), // Include the restaurantId in the endpoint URL
+      Uri.parse('$baseUrl/food/$restaurantId'), // Include the restaurantId in the endpoint URL
       headers: {
         'Content-Type': 'application/json',
         // Add any authentication token if needed, e.g., 'Authorization': 'Bearer <token>'

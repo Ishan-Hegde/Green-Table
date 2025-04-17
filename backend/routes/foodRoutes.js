@@ -4,7 +4,7 @@ const { addFoodListing, getAvailableFoodListings, claimFood } = require('../cont
 const router = express.Router();
 
 router.post('/add', addFoodListing);
-router.get('/available', getAvailableFoodListings);
+router.get('/live', getAvailableFoodListings);
 router.post('/claim', claimFood);
 
 module.exports = router;
