@@ -56,9 +56,10 @@ exports.getAvailableFoodListings = async (req, res) => {
             data: foodListings
         });
     } catch (error) {
+        console.error('Error fetching food listings:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Failed to retrieve food listings'
+            message: 'Server error'
         });
     }
 };
@@ -89,20 +90,24 @@ exports.getFoodItemsByRestaurant = async (req, res) => {
             data: foodItems
         });
     } catch (error) {
+        console.error('Error fetching restaurant foods:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Server error while retrieving food items'
+            message: 'Server error'
         });
     }
 };
+exports.getAvailableFoods = async (req, res) => {
     try {
         const foodListings = await Food.find({ isAvailable: true }).populate('restaurantId', 'name');
-        res.json(foodListings);
+        res.status(200).json(foodListings);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching food listings', error });
+        console.error('Error fetching food listings:', error);
+        res.status(500).json({ message: 'Server error' });
     }
+};
 
-exports.claimFood = async (req, res) => {
+exports.updateFoodAvailability = async (req, res) => {
     try {
         const { foodId, consumerId } = req.body;
         const foodItem = await Food.findByIdAndUpdate(
@@ -112,6 +117,7 @@ exports.claimFood = async (req, res) => {
         );
         res.json({ message: 'Food claimed successfully', data: foodItem });
     } catch (error) {
-        res.status(500).json({ message: 'Error claiming food item', error });
+        console.error('Error updating food availability:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
