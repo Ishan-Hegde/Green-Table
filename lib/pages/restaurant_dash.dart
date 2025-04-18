@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:green_table/config.dart';
 import 'package:green_table/widgets/food_listing_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -392,10 +393,30 @@ class _OrdersPageState extends State<OrdersPage> {
   // Fetch food items from the server
   Future<void> _fetchFoodItems() async {
     if (restaurantId.isNotEmpty) {
-      final response = await http.get(
-        Uri.parse(
-            'https://green-table.onrender.com/api/food/$restaurantId'), // Get food items for this restaurant
-      );
+      const maxRetries = 3;
+      http.Response response = http.Response('', 500); // Initialize with default
+      
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          response = await http.get(
+            Uri.parse('${Config.baseUrl}/food/$restaurantId'),
+          );
+          if (response.statusCode == 200) break;
+        } catch (e) {
+          response = http.Response('', 500); // Ensure assignment on error
+          if (attempt == maxRetries) {
+            debugPrint('Failed to fetch food items after $maxRetries attempts: $e');
+            final prefs = await SharedPreferences.getInstance();
+            final lastUpdate = prefs.getInt('lastFoodUpdate') ?? 0;
+            if (DateTime.now().millisecondsSinceEpoch - lastUpdate > 86400000) {
+              await prefs.remove('cachedFoodItems');
+            }
+            await _loadFoodItemsFromLocal();
+            return;
+          }
+          await Future.delayed(const Duration(seconds: 2));
+        }
+      }
 
       if (response.statusCode == 200) {
         final List<dynamic> foods = jsonDecode(response.body);
@@ -418,6 +439,8 @@ class _OrdersPageState extends State<OrdersPage> {
 
         // Save the food items to local storage
         _saveFoodItemsToLocal(foodItems);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('lastFoodUpdate', DateTime.now().millisecondsSinceEpoch);
       } else {
         // If API call fails, load from local storage
         await _loadFoodItemsFromLocal();

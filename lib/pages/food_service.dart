@@ -8,20 +8,17 @@ class FoodService {
 
   Future<List<dynamic>> getFoodListings(String restaurantId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/food/$restaurantId'), // Include the restaurantId in the endpoint URL
+      Uri.parse('$baseUrl/food/$restaurantId'),
       headers: {
         'Content-Type': 'application/json',
-        // Add any authentication token if needed, e.g., 'Authorization': 'Bearer <token>'
       },
     );
 
     if (response.statusCode == 200) {
-      // If the server returns a 200 OK response, parse the food listings
       List<dynamic> foodListings = json.decode(response.body);
       return foodListings;
     } else {
-      // If the server returns an error response, throw an exception
-      throw Exception('Failed to load food listings');
+      throw Exception('Failed to load food listings for restaurant $restaurantId. Status: ${response.statusCode} Body: ${response.body}');
     }
   }
 }

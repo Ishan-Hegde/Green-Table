@@ -50,12 +50,57 @@ exports.createFoodItem = async (req, res) => {
 // Get Available Food Listings
 exports.getAvailableFoodListings = async (req, res) => {
     try {
+        const foodListings = await Food.find({ quantity: { $gt: 0 } });
+        res.status(200).json({
+            status: 'success',
+            data: foodListings
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Failed to retrieve food listings'
+        });
+    }
+};
+
+// Get Food Items by Restaurant ID
+exports.getFoodItemsByRestaurant = async (req, res) => {
+    try {
+        const { restaurantId } = req.params;
+
+        if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Invalid restaurant ID format'
+            });
+        }
+
+        const foodItems = await Food.find({ restaurantId });
+
+        if (!foodItems || foodItems.length === 0) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'No food items found for this restaurant'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: foodItems
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error while retrieving food items'
+        });
+    }
+};
+    try {
         const foodListings = await Food.find({ isAvailable: true }).populate('restaurantId', 'name');
         res.json(foodListings);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching food listings', error });
     }
-};
 
 exports.claimFood = async (req, res) => {
     try {
