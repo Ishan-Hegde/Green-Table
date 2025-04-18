@@ -13,7 +13,6 @@ class FoodItem {
       timeOfCooking: DateTime.parse(map['timeOfCooking'] ?? DateTime.now().toIso8601String()),
       restaurantId: map['restaurantId'] ?? '',
       restaurantName: map['restaurantName'] ?? '',
-      // isAvailable: map['isAvailable'] ?? true, imageUrl: '',
     );
   }
 
@@ -26,7 +25,6 @@ class FoodItem {
   final DateTime timeOfCooking;
   final String restaurantId;
   final String restaurantName;
-  // final String imageUrl;
   final bool isAvailable;
 
   const FoodItem({
@@ -39,7 +37,6 @@ class FoodItem {
     required this.timeOfCooking,
     required this.restaurantId,
     required this.restaurantName,
-    // required this.imageUrl,
     this.isAvailable = true,
   });
 
@@ -54,7 +51,6 @@ class FoodItem {
       timeOfCooking: DateTime.parse(json['timeOfCooking'] ?? DateTime.now().toIso8601String()),
       restaurantId: json['restaurantId'] ?? '',
       restaurantName: json['restaurantName'] ?? '',
-      // imageUrl: json['imageUrl'] ?? '',
     );
   }
 
@@ -69,7 +65,6 @@ class FoodItem {
       'timeOfCooking': timeOfCooking.toIso8601String(),
       'restaurantId': restaurantId,
       'restaurantName': restaurantName,
-      // 'imageUrl': imageUrl,
       'isAvailable': isAvailable,
     };
   }
@@ -84,7 +79,6 @@ class FoodItem {
     DateTime? timeOfCooking,
     String? restaurantId,
     String? restaurantName,
-    // String? imageUrl,
     bool? isAvailable,
   }) {
     return FoodItem(
@@ -97,7 +91,6 @@ class FoodItem {
       timeOfCooking: timeOfCooking ?? this.timeOfCooking,
       restaurantId: restaurantId ?? this.restaurantId,
       restaurantName: restaurantName ?? this.restaurantName,
-      // imageUrl: imageUrl ?? this.imageUrl,
       isAvailable: isAvailable ?? this.isAvailable,
     );
   }
@@ -115,7 +108,6 @@ class FoodItem {
         other.timeOfCooking == timeOfCooking &&
         other.restaurantId == restaurantId &&
         other.restaurantName == restaurantName &&
-        // other.imageUrl == imageUrl &&
         other.isAvailable == isAvailable;
   }
 
@@ -131,7 +123,6 @@ class FoodItem {
       timeOfCooking,
       restaurantId,
       restaurantName,
-      // imageUrl,
       isAvailable,
     );
   }

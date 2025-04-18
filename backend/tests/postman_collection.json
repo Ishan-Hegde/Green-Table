@@ -68,7 +68,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Test Pizza\",\n    \"description\": \"Margherita\",\n    \"price\": 12.99,\n    \"quantity\": 5,\n    \"expiryDate\": \"2024-03-30T18:00:00Z\",\n    \"timeOfCooking\": \"2024-03-29T14:30:00Z\",\n    \"restaurantId\": \"{{restaurant_id}}\",\n    \"imageUrl\": \"https://example.com/pizza.jpg\",\n    \"isAvailable\": true\n}",
+              "raw": "{\n    \"name\": \"Test Pizza\",\n    \"description\": \"Margherita\",\n    \"price\": 12.99,\n    \"quantity\": 5,\n    \"expiryDate\": \"2024-03-30T18:00:00Z\",\n    \"timeOfCooking\": \"2024-03-29T14:30:00Z\",\n    \"restaurantId\": \"{{restaurant_id}}\",\n    \"isAvailable\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"

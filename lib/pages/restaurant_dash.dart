@@ -336,7 +336,6 @@ class _OrdersPageState extends State<OrdersPage> {
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController expiryDateController = TextEditingController();
   final TextEditingController timeOfCookingController = TextEditingController();
-  final TextEditingController imageUrlController = TextEditingController();
 
   @override
   void initState() {
@@ -460,7 +459,6 @@ class _OrdersPageState extends State<OrdersPage> {
               .parse(
                   '${expiryDateController.text} ${timeOfCookingController.text}')
               .toIso8601String(),
-          'imageUrl': imageUrlController.text,
         }),
       );
 
@@ -720,7 +718,6 @@ class _OrdersPageState extends State<OrdersPage> {
             .parse(
                 '${expiryDateController.text} ${timeOfCookingController.text}')
             .toIso8601String(),
-        'imageUrl': imageUrlController.text,
       };
 
       _addFoodItem(newFoodItem);

@@ -12,7 +12,6 @@ const foodSchema = new mongoose.Schema({
   expiryDate: { type: Date, required: true },
   timeOfCooking: { type: Date, required: true },
   category: { type: String, required: true },
-  imageUrl: { type: String, required: true },
 });
 
 module.exports = mongoose.model('Food', foodSchema);

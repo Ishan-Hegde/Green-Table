@@ -13,10 +13,9 @@ exports.createFoodItem = async (req, res) => {
             expiryDate,
             timeOfCooking,
             category,
-            imageUrl,
         } = req.body;
 
-        if (!foodName || !description || !price || !quantity || !expiryDate || !timeOfCooking || !category || !imageUrl) {
+        if (!foodName || !description || !price || !quantity || !expiryDate || !timeOfCooking || !category) {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
@@ -34,7 +33,6 @@ exports.createFoodItem = async (req, res) => {
             expiryDate: new Date(expiryDate),
             timeOfCooking: new Date(timeOfCooking),
             category,
-            imageUrl,
         });
 
         res.status(201).json({
