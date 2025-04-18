@@ -6,6 +6,7 @@ const sendOTP = require('../utils/mailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { generateOTP, verifyOTP } = require('../utils/mailer');
+const { verifyKYCDocument } = require('../utils/kycService');
 
 // Restaurant Registration
 exports.registerRestaurant = async (req, res) => {
@@ -58,77 +59,79 @@ exports.verifyOTP = async (req, res) => {
     }
 };
 
-// Consumer Registration
-exports.registerConsumer = async (req, res) => {
+// User registration logic
+exports.registerUser = async (req, res) => {
     try {
-        const { name, email, phone, password, confirmPassword } = req.body;
+        const { name, email, phone, password, role } = req.body;
 
-        if (password !== confirmPassword) {
-            return res.status(400).json({ message: "Passwords do not match" });
-        }
-
-        let existingUser = await User.findOne({ email });
+        // Check existing user
+        const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
         if (existingUser) {
-            return res.status(400).json({ message: "Email already registered" });
+            return res.status(400).json({ message: 'User already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({
-            name,
-            email,
-            phone,
-            password: hashedPassword,
-            role: "consumer",
-            isVerified: false
-        });
-
+        const newUser = new User({ name, email, phone, password: hashedPassword, role, isVerified: false });
         await newUser.save();
 
+        // Generate OTP
         const otpCode = Math.floor(100000 + Math.random() * 900000);
         await OTP.create({ email, otp: otpCode });
 
-        await sendOTP(email, otpCode);
-
-        return res.status(201).json({ message: "Consumer registered successfully. OTP sent to email." });
-
-    } catch (error) {
-        console.error("Error in registerConsumer:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// Login
-exports.login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const consumer = await User.findOne({ email });
-        const restaurant = await Restaurant.findOne({ email });
-
-        if (!consumer && !restaurant) {
-            return res.status(404).json({ message: "User not found." });
+        if (role === 'consumer') {
+            await sendOTP(email, otpCode);
+            return res.status(201).json({ message: 'OTP sent to email' });
         }
 
-        const user = consumer || restaurant;
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ message: "Invalid credentials." });
-
-        if (restaurant && (!restaurant.isKYCVerified || restaurant.kycStatus !== 'verified')) {
-            return res.status(403).json({ 
-              message: "KYC verification required. Please complete verification process.",
-              nextStep: "/kyc-upload"
+        // For restaurants, create KYC entry
+        if (role === 'restaurant') {
+            const newRestaurant = new Restaurant({ userId: newUser._id });
+            await newRestaurant.save();
+            return res.status(201).json({ 
+                message: 'KYC verification required', 
+                restaurantId: newRestaurant._id 
             });
         }
 
-        if (consumer && !consumer.isVerified) {
-            return res.status(403).json({ message: "OTP not verified. Please complete verification." });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// User login logic
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ id: user._id, role: restaurant ? "restaurant" : "consumer" }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // Check verification status
+        if (user.role === 'restaurant') {
+            const restaurant = await Restaurant.findOne({ userId: user._id });
+            if (restaurant?.kycStatus !== 'verified') {
+                return res.status(403).json({ 
+                    message: 'KYC verification pending',
+                    requiresKYC: true
+                });
+            }
+        }
 
-        res.status(200).json({ message: "Login successful.", token });
+        if (!user.isVerified) {
+            return res.status(403).json({
+                message: 'OTP verification required',
+                requiresOTP: true
+            });
+        }
+
+        // Generate token
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.json({ token, role: user.role });
+
     } catch (error) {
-        console.error("Error in login:", error);
-        res.status(500).json({ error: "Internal server error." });
+        res.status(500).json({ message: error.message });
     }
 };
 

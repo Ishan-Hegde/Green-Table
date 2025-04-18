@@ -1,13 +1,13 @@
-// ignore: duplicate_ignore
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, unused_local_variable, unused_element
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:green_table/pages/kyc_verification_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'consumer_dash.dart'; // Assuming your ConsumerApp is in this file
 import 'restaurant_dash.dart'; // Import your Restaurant dashboard page
-import 'package:green_table/config.dart'; // Import the config file
+import 'package:green_table/config.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -77,14 +77,51 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('token', token);
         await prefs.setString('userEmail', _emailController.text);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => isConsumerSelected
-                ? const ConsumerApp()
-                : const RestaurantApp(),
-          ),
-        );
+        // Handle KYC status before navigation
+        if (responseJson['kycStatus'] == 'unverified') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const KYCVerificationScreen()),
+          );
+        } else if (responseJson['kycStatus'] == 'pending') {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Verification Pending'),
+              content: const Text('Your documents are under review. Please wait for approval.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        } else if (responseJson['kycStatus'] == 'rejected') {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Verification Rejected'),
+              content: const Text('Please resubmit your documents with corrections.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => isConsumerSelected
+                  ? const ConsumerApp()
+                  : const RestaurantApp(),
+            ),
+          );
+        }
+
       } else {
         final responseJson = jsonDecode(response.body);
         _showErrorDialog(responseJson['message'] ?? 'Login failed');

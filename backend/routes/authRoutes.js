@@ -9,14 +9,15 @@
 
 // module.exports = router;
 const express = require('express');
-const { registerRestaurant, login, verifyOTP, uploadKYC, registerConsumer } = require('../controllers/authController');
+const { registerRestaurant, login, verifyOTP, uploadKYC, registerUser } = require('../controllers/authController');
 
 const router = express.Router();
 
 router.post('/register-restaurant', registerRestaurant);
-router.post('/register-consumer', registerConsumer);
+router.post('/register-consumer', registerUser);
 router.post('/login', login);
 router.post('/verify-otp', verifyOTP);
-router.post('/upload-kyc', uploadKYC);
+const upload = require('../middleware/multer');
+router.post('/upload-kyc', upload.single('document'), uploadKYC);
 
 module.exports = router;
