@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:green_table/models/food_item.dart';
 
 class OrderService {
-  static const String baseUrl = 'https://green-table-backend.onrender.com/api';
+  static const String baseUrl = 'https://green-table.onrender.com/api';
 
   Future<void> createOrder(FoodItem item, int quantity) async {
     try {

@@ -361,7 +361,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   void _initializeSocket() {
     socket =
-        IO.io('https://green-table-backend.onrender.com', <String, dynamic>{
+        IO.io('https://green-table.onrender.com', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });
@@ -406,7 +406,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   Future<void> _fetchRestaurants() async {
     final response = await http.get(Uri.parse(
-        'https://green-table-backend.onrender.com/api/restaurant/all'));
+        'https://green-table.onrender.com/api/restaurant/all'));
 
     if (response.statusCode == 200) {
       final List<dynamic> restaurants = jsonDecode(response.body);
@@ -429,7 +429,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   Future<void> _fetchFoodListings(String restaurantId) async {
     final response = await http.get(Uri.parse(
-        'https://green-table-backend.onrender.com/api/food/$restaurantId'));
+        'https://green-table.onrender.com/api/food/$restaurantId'));
 
     if (response.statusCode == 200) {
       final List<dynamic> foodItems = jsonDecode(response.body);
