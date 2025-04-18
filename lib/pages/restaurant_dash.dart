@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:green_table/config.dart';
 import 'package:green_table/widgets/food_listing_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +30,19 @@ void main() {
 }
 
 class _RestaurantAppState extends State<RestaurantApp> {
+  late IO.Socket socket;
+
+  @override
+  void initState() {
+    super.initState();
+    socket = IO.io(Config.baseUrl, IO.OptionBuilder().setTransports(['websocket']).build());
+  }
+
+  @override
+  void dispose() {
+    socket.disconnect();
+    super.dispose();
+  }
   int _selectedIndex = 0;
   bool isDarkMode = false;
   Color primaryGreen = Colors.green[700]!;

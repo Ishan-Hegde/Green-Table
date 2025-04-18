@@ -413,9 +413,9 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
       setState(() {
         _restaurants.addAll(restaurants.map((restaurant) {
           return {
-            'restaurantId': restaurant['_id'],
-            'restaurantName': restaurant['name'],
-            'foodItems': restaurant['foodItems'] ??
+            'id': restaurant['_id'],
+            'name': restaurant['name'],
+            'menuItems': restaurant['foodItems'] ??
                 [], // Ensure foodItems is initialized
           };
         }).toList());
@@ -438,11 +438,9 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
         final Map<String, dynamic>? restaurant = _restaurants.firstWhere(
           (r) => r['restaurantId'] == restaurantId,
           orElse: () => {
-            // return {
-            //   'restaurantId': restaurantId,
-            //   'restaurantName': '', // Default name or leave empty
-            //   'foodItems': [],
-            // };
+              'restaurantId': restaurantId,
+              'restaurantName': '', // Default name or leave empty
+              'foodItems': [],
           },
         );
 
@@ -566,49 +564,89 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
   }
 }
 
+// ignore: must_be_immutable
 class FoodListingsWidget extends StatelessWidget {
   final Map<String, dynamic> restaurant;
+  final _cartItems = <Map<String, dynamic>>[];
+  
+  late BuildContext context;
 
-  const FoodListingsWidget({super.key, required this.restaurant});
+  FoodListingsWidget({super.key, required this.restaurant});
+
+  void _addToCart(Map<String, dynamic> item) {
+    _cartItems.add(item);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Added ${item['name']} to cart')),
+    );
+  }
+
+  void _placeOrder() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    
+    final response = await http.post(
+      Uri.parse('https://green-table.onrender.com/api/orders'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'restaurantId': restaurant['restaurantId'],
+        'items': _cartItems,
+        'status': 'pending',
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order placed successfully!')),
+      );
+      _cartItems.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${restaurant['restaurantName']} - Food Listings',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return Stack(
+      children: [
+         Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${restaurant['restaurantName']} - Food Listings',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: restaurant['foodItems'].length,
+                  itemBuilder: (context, index) {
+                    final item = restaurant['foodItems'][index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: ListTile(
+                        title: Text(item['name']),
+                        subtitle: Text(
+                            'Description: ${item['description']}, Price: \$${item['price']}'),
+                        trailing: ElevatedButton(
+                          onPressed: () {
+                            // Logic to add item to cart
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text('Added ${item['name']} to cart')));
+                          },
+                          child: const Text('Order'),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ListView.builder(
-              itemCount: restaurant['foodItems'].length,
-              itemBuilder: (context, index) {
-                final item = restaurant['foodItems'][index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ListTile(
-                    title: Text(item['name']),
-                    subtitle: Text(
-                        'Description: ${item['description']}, Price: \$${item['price']}'),
-                    trailing: ElevatedButton(
-                      onPressed: () {
-                        // Logic to add item to cart
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Added ${item['name']} to cart')));
-                      },
-                      child: const Text('Order'),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
