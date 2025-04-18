@@ -32,11 +32,11 @@ class FoodListingCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Food Image
-            if (foodItem.imageUrl.isNotEmpty)
+            if (foodItem.isAvailable)
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Image.network(
-                  foodItem.imageUrl,
+                  foodItem.name,
                   height: 150,
                   width: double.infinity,
                   fit: BoxFit.cover,

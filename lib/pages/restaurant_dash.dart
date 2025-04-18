@@ -1,6 +1,7 @@
 // ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, unused_import, library_prefixes, avoid_print, unused_element
 
 import 'dart:convert';
+import 'dart:core';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:green_table/widgets/food_listing_card.dart';
@@ -321,6 +322,7 @@ class _OrdersPageState extends State<OrdersPage> {
       ),
     );
   }
+
   String userEmail = '';
   String restaurantId = '';
   String restaurantName = '';
@@ -334,6 +336,7 @@ class _OrdersPageState extends State<OrdersPage> {
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController expiryDateController = TextEditingController();
   final TextEditingController timeOfCookingController = TextEditingController();
+  final TextEditingController imageUrlController = TextEditingController();
 
   @override
   void initState() {
@@ -445,14 +448,19 @@ class _OrdersPageState extends State<OrdersPage> {
           'restaurantId': restaurantId,
           'restaurantName': restaurantName,
           // Here we ensure that foodItems is an array (list) of food names
-          'name': nameController.text, // Put the name from the controller as a single item in the list
+          'foodName': nameController
+              .text, // Put the name from the controller as a single item in the list
           'description': descriptionController.text,
           'price': double.parse(priceController.text),
           'quantity': int.parse(quantityController.text),
           'expiryDate':
               expiryDateController.text, // Ensure it's in the correct format
           'category': categoryController.text,
-          'timeOfCooking': timeOfCookingController.text,
+          'timeOfCooking': DateFormat('yyyy-MM-dd HH:mm')
+              .parse(
+                  '${expiryDateController.text} ${timeOfCookingController.text}')
+              .toIso8601String(),
+          'imageUrl': imageUrlController.text,
         }),
       );
 
@@ -506,7 +514,7 @@ class _OrdersPageState extends State<OrdersPage> {
       firstDate: DateTime(2000), // Earliest date
       lastDate: DateTime(2101), // Latest date
     );
-    if (pickedDate != null && pickedDate != DateTime.now()) {
+    if (pickedDate != null) {
       // Format the selected date to ISO string format
       String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
       expiryDateController.text =
@@ -630,14 +638,14 @@ class _OrdersPageState extends State<OrdersPage> {
                           onAddToCart: () => _handleAddToCart(food),
                           textStyle: Theme.of(context).textTheme.bodyMedium!,
                         );
-                            },
-                          )],
-                    ),
-                  ),
-                ),
-              ); 
+                      },
+                    )
+            ],
+          ),
+        ),
+      ),
+    );
   }
-
 
   Widget _buildInputField(
       TextEditingController controller, String labelText, IconData iconData,
@@ -656,6 +664,7 @@ class _OrdersPageState extends State<OrdersPage> {
                     labelText: labelText, border: InputBorder.none),
                 keyboardType: keyboardType,
               ),
+              
             ),
           ],
         ),
@@ -701,13 +710,17 @@ class _OrdersPageState extends State<OrdersPage> {
       final int quantity = int.parse(quantityController.text);
 
       Map<String, dynamic> newFoodItem = {
-        'name': nameController.text,
+        'foodName': (String name) => nameController.text,
         'description': descriptionController.text,
         'category': categoryController.text,
         'price': price,
         'quantity': quantity,
         'expiryDate': expiryDateController.text,
-        'timeOfCooking': timeOfCookingController.text,
+        'timeOfCooking': DateFormat('yyyy-MM-dd HH:mm')
+            .parse(
+                '${expiryDateController.text} ${timeOfCookingController.text}')
+            .toIso8601String(),
+        'imageUrl': imageUrlController.text,
       };
 
       _addFoodItem(newFoodItem);

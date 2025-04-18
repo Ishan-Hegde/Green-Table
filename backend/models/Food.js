@@ -3,7 +3,7 @@
 const mongoose = require('mongoose');
 
 const foodSchema = new mongoose.Schema({
-  restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant', required: true },
+  restaurantId: { type: String, required: true },
   restaurantName: { type: String, required: true },
   foodName: { type: String, required: true },
   description: { type: String, required: true },
@@ -11,8 +11,8 @@ const foodSchema = new mongoose.Schema({
   quantity: { type: Number, required: true },
   expiryDate: { type: Date, required: true },
   timeOfCooking: { type: Date, required: true },
+  category: { type: String, required: true },
   imageUrl: { type: String, required: true },
-  isAvailable: { type: Boolean, default: true },
 });
 
 module.exports = mongoose.model('Food', foodSchema);

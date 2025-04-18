@@ -3,30 +3,38 @@ const Food = require('../models/Food');
 // Create Food Item
 exports.createFoodItem = async (req, res) => {
     try {
-        const { 
-            name,
+        const {
+            restaurantId,
+            restaurantName,
+            foodName,
             description,
             price,
             quantity,
             expiryDate,
             timeOfCooking,
-            restaurantId,
-            restaurantName,
+            category,
             imageUrl,
-            isAvailable
         } = req.body;
 
+        if (!foodName || !description || !price || !quantity || !expiryDate || !timeOfCooking || !category || !imageUrl) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        if (isNaN(price) || isNaN(quantity)) {
+            return res.status(400).json({ message: 'Price and quantity must be numbers' });
+        }
+
         const foodItem = await Food.create({
-            name,
-            description,
-            price: Number(price),
-            quantity: Number(quantity),
-            expiryDate: new Date(expiryDate),
-            timeOfCooking: new Date(timeOfCooking),
             restaurantId,
             restaurantName,
+            foodName: foodName,
+            description,
+            price: parseFloat(price),
+            quantity: parseInt(quantity),
+            expiryDate: new Date(expiryDate),
+            timeOfCooking: new Date(timeOfCooking),
+            category,
             imageUrl,
-            isAvailable: Boolean(isAvailable)
         });
 
         res.status(201).json({
