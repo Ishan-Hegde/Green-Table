@@ -1,10 +1,10 @@
 const express = require('express');
-const { addFoodListing, getAvailableFoodListings, claimFood } = require('../controllers/foodController');
+const foodController = require('../controllers/foodController');
 
 const router = express.Router();
 
-router.post('/add', addFoodListing);
-router.get('/live', getAvailableFoodListings);
-router.post('/claim', claimFood);
+router.post('/add', foodController.createFoodItem);
+router.get('/live', foodController.getAvailableFoodListings);
+router.post('/claim', foodController.claimFood);
 
 module.exports = router;

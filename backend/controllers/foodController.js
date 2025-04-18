@@ -1,43 +1,66 @@
-const FoodListing = require('../models/FoodListing');
+const Food = require('../models/Food');
 
-// Add Food Listing
-exports.addFoodListing = async (req, res) => {
+// Create Food Item
+exports.createFoodItem = async (req, res) => {
     try {
-        const { restaurantId, foodName, quantity, expiryTime, pickupLocation } = req.body;
+        const { 
+            name,
+            description,
+            price,
+            quantity,
+            expiryDate,
+            timeOfCooking,
+            restaurantId,
+            restaurantName,
+            imageUrl,
+            isAvailable
+        } = req.body;
 
-        const food = await FoodListing.create({ restaurantId, foodName, quantity, expiryTime, pickupLocation });
+        const foodItem = await Food.create({
+            name,
+            description,
+            price: Number(price),
+            quantity: Number(quantity),
+            expiryDate: new Date(expiryDate),
+            timeOfCooking: new Date(timeOfCooking),
+            restaurantId,
+            restaurantName,
+            imageUrl,
+            isAvailable: Boolean(isAvailable)
+        });
 
-        res.status(201).json({ message: 'Food listing added successfully', food });
+        res.status(201).json({
+            status: 'success',
+            data: foodItem
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error adding food listing', error });
+        res.status(400).json({
+            status: 'fail',
+            message: error.message
+        });
     }
 };
 
 // Get Available Food Listings
 exports.getAvailableFoodListings = async (req, res) => {
     try {
-        const foodListings = await FoodListing.find({ status: 'available' }).populate('restaurantId', 'name');
+        const foodListings = await Food.find({ isAvailable: true }).populate('restaurantId', 'name');
         res.json(foodListings);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching food listings', error });
     }
 };
 
-// Claim Food
 exports.claimFood = async (req, res) => {
     try {
-        const { foodId } = req.body;
-
-        const food = await FoodListing.findById(foodId);
-        if (!food || food.status !== 'available') {
-            return res.status(400).json({ message: 'Food not available' });
-        }
-
-        food.status = 'claimed';
-        await food.save();
-
-        res.json({ message: 'Food claimed successfully', food });
+        const { foodId, consumerId } = req.body;
+        const foodItem = await Food.findByIdAndUpdate(
+            foodId,
+            { isAvailable: false, claimedBy: consumerId },
+            { new: true }
+        );
+        res.json({ message: 'Food claimed successfully', data: foodItem });
     } catch (error) {
-        res.status(500).json({ message: 'Error claiming food', error });
+        res.status(500).json({ message: 'Error claiming food item', error });
     }
 };
