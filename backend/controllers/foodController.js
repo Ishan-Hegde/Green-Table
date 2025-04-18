@@ -1,4 +1,6 @@
+const mongoose = require('mongoose');
 const Food = require('../models/Food');
+const FoodListing = require('../models/FoodListing');
 
 // Create Food Item
 exports.createFoodItem = async (req, res) => {
@@ -76,7 +78,7 @@ exports.getFoodItemsByRestaurant = async (req, res) => {
             });
         }
 
-        const foodItems = await Food.find({ restaurantId });
+        const foodItems = await Food.find({ restaurantId: new mongoose.Types.ObjectId(restaurantId) });
 
         if (!foodItems || foodItems.length === 0) {
             return res.status(404).json({
