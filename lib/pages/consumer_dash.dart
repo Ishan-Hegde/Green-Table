@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+// ignore: unused_import
+import 'package:green_table/pages/restaurant_dash.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'login_page.dart'; // Import your LoginPage
 import 'dart:math';
@@ -73,8 +75,8 @@ class _ConsumerAppState extends State<ConsumerApp> {
               Navigator.of(context).pop(); // Close the dialog
             },
             style: TextButton.styleFrom(
-              foregroundColor:
-                  Colors.green, // Change text color to green for Cancel
+                foregroundColor:
+                    Colors.green, // Change text color to green for Cancel
             ),
             child: const Text('Cancel'),
           ),
@@ -84,8 +86,8 @@ class _ConsumerAppState extends State<ConsumerApp> {
               _signOut(); // Call sign out function
             },
             style: TextButton.styleFrom(
-              foregroundColor:
-                  Colors.red, // Change text color to red for Sign Out
+                foregroundColor:
+                    Colors.red, // Change text color to red for Sign Out
             ),
             child: const Text('Sign Out'),
           ),
@@ -374,13 +376,11 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
         String restaurantId = data['restaurantId'];
         Map<String, dynamic> restaurant = _restaurants.firstWhere(
           (r) => r['restaurantId'] == restaurantId,
-          orElse: () => {
-            // return {
-            //   'restaurantId': restaurantId,
-            //   'restaurantName': data['restaurantName'],
-            //   'foodItems': [],
-            // };
-          },
+          orElse: () => ({
+            'restaurantId': restaurantId,
+            'restaurantName': data['restaurantName'],
+            'foodItems': [], // Ensure initialization with empty list
+          }),
         );
 
         // Now we can safely add the food item
@@ -411,14 +411,13 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
     if (response.statusCode == 200) {
       final List<dynamic> restaurants = jsonDecode(response.body);
       setState(() {
-        _restaurants.addAll(restaurants.map((restaurant) {
-          return {
-            'id': restaurant['_id'],
-            'name': restaurant['name'],
-            'menuItems': restaurant['foodItems'] ??
-                [], // Ensure foodItems is initialized
-          };
-        }).toList());
+        _restaurants.addAll(restaurants.map((restaurant) => {
+          'id': restaurant['_id'],
+          'restaurantId': restaurant['_id'],
+          'name': restaurant['name'],
+          'restaurantName': restaurant['name'],
+          'foodItems': restaurant['foodItems'] ?? [],
+        }));
         _filteredRestaurants =
             List.from(_restaurants); // Initialize filtered restaurants
       });
@@ -455,7 +454,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   void _showFoodListings(Map<String, dynamic> restaurant) {
     // Fetch food items for the selected restaurant before showing them
-    _fetchFoodListings(restaurant['restaurantId']);
+    _fetchFoodListings(restaurant['id'] ?? '');  // Use 'id' instead of 'restaurantId'
 
     showModalBottomSheet(
       context: context,
@@ -543,7 +542,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                             width: 50,
                           ),
                           title: Text(
-                            restaurant['restaurantName']!,
+                            restaurant['name'] ?? 'Unnamed Restaurant',
                             style: TextStyle(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
@@ -580,6 +579,7 @@ class FoodListingsWidget extends StatelessWidget {
     );
   }
 
+  // ignore: unused_element
   void _placeOrder() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -607,46 +607,37 @@ class FoodListingsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-         Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${restaurant['restaurantName']} - Food Listings',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: restaurant['foodItems'].length,
-                  itemBuilder: (context, index) {
-                    final item = restaurant['foodItems'][index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: ListTile(
-                        title: Text(item['name']),
-                        subtitle: Text(
-                            'Description: ${item['description']}, Price: \$${item['price']}'),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            // Logic to add item to cart
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('Added ${item['name']} to cart')));
-                          },
-                          child: const Text('Order'),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${restaurant['name']} - Food Listings',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.builder(
+              itemCount: restaurant['foodItems']?.length ?? 0,
+              itemBuilder: (context, index) {
+                final item = restaurant['foodItems']?[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: ListTile(
+                    title: Text(item?['name'] ?? 'Unnamed Item'),
+                    subtitle: Text(item?['description'] ?? ''),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.add_shopping_cart),
+                      onPressed: () => _addToCart(item!),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -749,7 +740,7 @@ class PastOrdersPage extends StatelessWidget {
               Center(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    _downloadInvoice(context, order);
+                    downloadInvoice(context, order);
                   },
                   icon: const Icon(Icons.download),
                   label: const Text('Download Invoice'),
@@ -769,7 +760,7 @@ class PastOrdersPage extends StatelessWidget {
   }
 
   // Function to simulate invoice download
-  void _downloadInvoice(BuildContext context, Map<String, String> order) {
+  void downloadInvoice(BuildContext context, Map<String, String> order) {
     Navigator.pop(context); // Close the bottom sheet
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
