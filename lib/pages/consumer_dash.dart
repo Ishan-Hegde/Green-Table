@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:green_table/config.dart';
 // ignore: unused_import
 import 'package:green_table/pages/restaurant_dash.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
@@ -416,7 +417,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
           'restaurantId': restaurant['_id'],
           'name': restaurant['name'],
           'restaurantName': restaurant['name'],
-          'foodItems': restaurant['foodItems'] ?? [],
+          'foodItems': restaurant['foodItems'] ?? [], // Initialize with empty array if null
         }));
         _filteredRestaurants =
             List.from(_restaurants); // Initialize filtered restaurants
@@ -427,28 +428,54 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
   }
 
   Future<void> _fetchFoodListings(String restaurantId) async {
-    final response = await http.get(Uri.parse(
-        'https://green-table.onrender.com/api/food/$restaurantId'));
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
-    if (response.statusCode == 200) {
-      final List<dynamic> foodItems = jsonDecode(response.body);
+    try {
+      final response = await http.get(
+        // Uri.parse('${Config.baseUrl}/food?restaurantId=$restaurantId'), // Changed endpoint format
+        Uri.parse('${Config.baseUrl}/food?restaurantId=$restaurantId'), // Changed endpoint format
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-      setState(() {
-        final Map<String, dynamic>? restaurant = _restaurants.firstWhere(
-          (r) => r['restaurantId'] == restaurantId,
-          orElse: () => {
-              'restaurantId': restaurantId,
-              'restaurantName': '', // Default name or leave empty
-              'foodItems': [],
-          },
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body); // Parse as Map
+        final List<dynamic> foodItems = responseData['foodItems'] ?? [];
+        
+        setState(() {
+          final restaurantIndex = _restaurants.indexWhere(
+            (r) => r['restaurantId'] == restaurantId
+          );
+          
+          if (restaurantIndex != -1) {
+            // Add all food items from the response
+            for (final item in foodItems) {
+              _restaurants[restaurantIndex]['foodItems'].add({
+                'name': item['name'],
+                'description': item['description'],
+                'price': item['price'],
+                'quantity': item['quantity'],
+                'expiryDate': item['expiryDate'],
+                'timeOfCooking': item['timeOfCooking'],
+              });
+            }
+            _filteredRestaurants = List.from(_restaurants);
+          }
+        });
+      } else {
+        print('Failed to load food items: ${response.statusCode}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load items: ${response.body}')),
         );
-
-        if (restaurant != null) {
-          restaurant['foodItems'] = foodItems; // Update with fetched food items
-        }
-      });
-    } else {
-      print('Failed to load food items for restaurant $restaurantId');
+      }
+    } catch (e) {
+      print('Error fetching food items: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Connection failed')),
+      );
     }
   }
 

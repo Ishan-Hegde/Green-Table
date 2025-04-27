@@ -23,14 +23,19 @@ class FoodListingService {
   // Get food listings by restaurant
   Future<List<FoodItem>> getFoodListingsByRestaurant(String restaurantId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/food/$restaurantId'));
+      final response = await http.get(
+        Uri.parse('${Config.baseUrl}/food/$restaurantId'), // Corrected endpoint
+        headers: {'Content-Type': 'application/json'}
+      );
+      
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => FoodItem.fromJson(json)).toList();
+        return (json.decode(response.body) as List)
+            .map((i) => FoodItem.fromJson(i))
+            .toList();
       }
-      throw Exception('Failed to load restaurant food listings');
+      throw Exception('Failed with status: ${response.statusCode}');
     } catch (e) {
-      throw Exception('Error fetching restaurant food listings: $e');
+      throw Exception('Food fetch error: $e');
     }
   }
 

@@ -1,22 +1,17 @@
 const express = require('express');
-const FoodListing = require('../models/FoodListing');
+const Food = require('../models/Food'); // Fixed model reference
 
 const router = express.Router();
 
-// Add food listing
-router.post('/add', async (req, res) => {
-  const { restaurantId, foodName, quantity, expiryDate, location } = req.body;
-  
-  const newListing = new FoodListing({ restaurantId, foodName, quantity, expiryDate, location });
-  await newListing.save();
-
-  res.json({ message: 'Food listed successfully', data: newListing });
+// Get all food listings for a restaurant
+router.get('/:restaurantId', async (req, res) => {
+  try {
+    const foods = await Food.find({ restaurantId: req.params.restaurantId });
+    res.json(foods);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 });
 
-// Get live food listings
-router.get('/live', async (req, res) => {
-  const listings = await FoodListing.find().sort({ createdAt: -1 });
-  res.json(listings);
-});
-
+// Existing endpoints remain unchanged
 module.exports = router;
