@@ -1,26 +1,46 @@
 const nodemailer = require('nodemailer');
-const bcrypt = require('bcryptjs');
 
-const sendEmail = async (userEmail, hashedPassword, subject, text) => {
-    // In a real scenario, we can't decrypt bcrypt hashes. Instead, we should use OAuth for email authentication.
-    // This is a simplified example assuming we store an unhashed version securely.
-    
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: userEmail,
-            pass: hashedPassword // WARNING: Bcrypt is not reversible, we need another secure way to store credentials
-        }
-    });
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
+    }
+});
 
-    const mailOptions = {
-        from: userEmail,
-        to: userEmail,
-        subject,
-        text
-    };
-
-    await transporter.sendMail(mailOptions);
+const sendEmail = async ({to, subject, text, html}) => {
+    try {
+        const info = await transporter.sendMail({
+            from: `"Green Table" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            text,
+            html
+        });
+        console.log('Email sent:', info.messageId);
+        return true;
+    } catch (error) {
+        console.error("Email send error:", error);
+        return false;
+    }
 };
 
-module.exports = sendEmail;
+const sendOTP = async (email, otp) => {
+    return sendEmail({
+        to: email,
+        subject: 'Your Green Table Verification Code',
+        html: `<div>
+            <h2>Account Verification</h2>
+            <p>Your OTP code is: <strong>${otp}</strong></p>
+            <p>This code expires in 5 minutes.</p>
+        </div>`
+    });
+};
+
+module.exports = {
+    sendEmail,
+    sendOTP
+};

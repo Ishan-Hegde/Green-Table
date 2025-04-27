@@ -1,7 +1,61 @@
 const Order = require('../models/Order');
+const { calculateCreditScore } = require('../utils/creditSystem');
+
+exports.createOrder = async (req, res) => {
+  try {
+    const order = await Order.create({
+      ...req.body,
+      consumerId: req.user.userId
+    });
+    
+    // Real-time update
+    req.io.to(order.restaurantId.toString()).emit('new-order', order);
+    res.status(201).json(order);
+    
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+
+    // Real-time status update
+    req.io.to(order.consumerId.toString()).emit('status-update', order);
+    res.json(order);
+
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.submitRating = async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { rating: req.body.rating },
+      { new: true }
+    );
+
+    // Update restaurant credit score
+    const restaurant = await User.findById(order.restaurantId);
+    restaurant.creditScore = calculateCreditScore(restaurant);
+    await restaurant.save();
+
+    res.json(order);
+    
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 const { emitToRoom } = require('../utils/socketManager');
 const Restaurant = require('../models/restaurantModel');
-const Consumer = require('../models/Consumer');
+const User = require('../models/User');
 const { calculateETA } = require('../utils/mapService');
 
 exports.createOrder = async (req, res) => {
@@ -35,7 +89,7 @@ exports.assignDeliveryPartner = async (req, res) => {
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const restaurant = await Restaurant.findById(order.restaurant);
-    const consumer = await Consumer.findById(order.consumer);
+    const consumer = await User.findById(order.consumer);
     
     const eta = await calculateETA(
       restaurant.location.coordinates,
@@ -79,6 +133,7 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
+// Remove these duplicate functions:
 exports.assignDeliveryPartner = async (req, res) => {
   try {
     const { orderId } = req.params;

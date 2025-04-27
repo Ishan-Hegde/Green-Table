@@ -1,9 +1,7 @@
-// routes/restaurant.js
 const express = require('express');
 const router = express.Router();
 const Restaurant = require('../models/restaurantModel');
 
-// Register Restaurant Endpoint (existing code)
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -53,32 +51,26 @@ router.post('/register', async (req, res) => {
 
 // Fetch all restaurant details
 router.get('/all', async (req, res) => {
-  try {
-    const restaurants = await Restaurant.find({}, { password: 0 }); // Exclude password field
-    res.status(200).json(restaurants);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to fetch restaurant details' });
-  }
+    try {
+        const restaurants = await Restaurant.find({}, { password: 0 });
+        res.status(200).json(restaurants);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to fetch restaurant details' });
+    }
 });
 
-// Add the route to fetch a restaurant by its unique _id
+// Get restaurant by ID
 router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    // Find the restaurant by its unique _id
-    const restaurant = await Restaurant.findById(id);
-
-    if (!restaurant) {
-      return res.status(404).send('Restaurant not found');
+    try {
+        const restaurant = await Restaurant.findById(req.params.id);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+        res.json(restaurant);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
     }
-
-    // Send the restaurant data back as JSON
-    res.json(restaurant);
-  } catch (err) {
-    res.status(500).send('Server error');
-  }
 });
 
 module.exports = router;

@@ -1,35 +1,33 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-  consumer: { type: mongoose.Schema.Types.ObjectId, ref: 'Consumer', required: true },
-  restaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant', required: true },
+  restaurantId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User',
+    required: true 
+  },
+  consumerId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User',
+    required: true 
+  },
   items: [{
-    foodItem: { type: mongoose.Schema.Types.ObjectId, ref: 'Food', required: true },
-    quantity: { type: Number, required: true }
+    foodId: String,
+    quantity: Number,
+    price: Number
   }],
   status: {
     type: String,
-    enum: ['pending', 'preparing', 'in_transit', 'delivered', 'cancelled'],
+    enum: ['pending', 'preparing', 'in-transit', 'delivered', 'cancelled'],
     default: 'pending'
   },
-  deliveryPartner: { type: mongoose.Schema.Types.ObjectId, ref: 'DeliveryPartner' },
-  estimatedDeliveryTime: Date,
-  actualDeliveryTime: Date,
-  pickupTime: Date,
-  location: {
+  totalAmount: Number,
+  deliveryLocation: {
     type: { type: String, default: 'Point' },
-    coordinates: { type: [Number], required: true }
+    coordinates: [Number]
   },
-  trackingHistory: [{
-    status: String,
-    location: {
-      type: { type: String, default: 'Point' },
-      coordinates: [Number]
-    },
-    timestamp: { type: Date, default: Date.now }
-  }]
+  rating: { type: Number, min: 1, max: 5 }
 }, { timestamps: true });
 
-orderSchema.index({ location: '2dsphere' });
-
+orderSchema.index({ deliveryLocation: '2dsphere' });
 module.exports = mongoose.model('Order', orderSchema);

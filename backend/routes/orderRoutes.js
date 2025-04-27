@@ -1,21 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const OrderController = require('../controllers/OrderController');
-const authMiddleware = require('../middleware/authMiddleware');
+const orderController = require('../controllers/orderController');
+const auth = require('../middleware/auth');
 
-// Order creation
-router.post('/create', authMiddleware, OrderController.createOrder);
-
-// Order status retrieval
-router.get('/:orderId/status', authMiddleware, OrderController.getOrderStatus);
-
-// Delivery assignment
-router.post('/:orderId/assign-delivery', authMiddleware, OrderController.assignDeliveryPartner);
-
-// Status updates
-router.put('/:orderId/status', authMiddleware, OrderController.updateOrderStatus);
-
-// Order details
-router.get('/:orderId', authMiddleware, OrderController.getOrderDetails);
+router.post('/', auth, orderController.createOrder);
+router.patch('/:id/status', auth, orderController.updateOrderStatus);
+router.post('/:id/rating', auth, orderController.submitRating);
 
 module.exports = router;
