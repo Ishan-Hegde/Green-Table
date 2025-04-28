@@ -1,11 +1,31 @@
 const express = require('express');
-const foodController = require('../controllers/foodController');
-
 const router = express.Router();
+const foodController = require('../controllers/foodController');
+const { auth } = require('../middleware/auth'); // Destructure auth from exports
+const { body, validationResult } = require('express-validator');
 
-router.post('/add', foodController.createFoodItem);
-router.get('/live', foodController.getAvailableFoodListings);
+router.post('/add', 
+  auth, // Now referencing the actual auth function
+  body('restaurantId').isMongoId(),
+  body('foodName').trim().notEmpty(),
+  body('price').isFloat({ gt: 0 }),
+  body('quantity').isInt({ min: 1 }),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
+  foodController.createFoodItem
+);
+router.post('/claim', 
+  auth,
+  body('foodId').isMongoId(),
+  body('quantity').isInt({ min: 1 }),
+  foodController.claimFoodItem
+);
+router.get('/available', foodController.getLiveFoodItems);
 router.get('/:restaurantId', foodController.getFoodItemsByRestaurant);
-router.post('/claim', foodController.updateFoodAvailability);
 
 module.exports = router;

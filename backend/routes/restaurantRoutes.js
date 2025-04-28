@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Restaurant = require('../models/restaurantModel');
+const bcrypt = require('bcryptjs'); // Add bcrypt import
 
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
