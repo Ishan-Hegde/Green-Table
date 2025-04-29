@@ -9,6 +9,10 @@ const restaurantSchema = new mongoose.Schema({
       minlength: 8,
       select: false
     },
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
     status: {
       type: String,
       enum: ['pending', 'active', 'suspended'],

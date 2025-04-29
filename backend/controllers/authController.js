@@ -45,22 +45,67 @@ exports.registerRestaurant = async (req, res) => {
 exports.verifyOTP = async (req, res) => {
     try {
         const { email, otp, userType } = req.body;
-        const isValid = await verifyOTP(email, otp);
+        
+        // Find valid OTP
+        const validOTP = await OTP.findOne({ 
+            email,
+            otp,
+            expiresAt: { $gt: new Date() }
+        });
 
-        if (!isValid) {
-            return res.status(400).json({ message: "Invalid OTP or OTP expired." });
+        if (!validOTP) {
+            return res.status(400).json({ error: 'Invalid or expired OTP' });
         }
 
-        if (userType === 'donor') {
-            await Restaurant.updateOne({ email }, { isVerified: true });
-        } else if (userType === 'consumer') {
-            await User.updateOne({ email, role: 'consumer' }, { isVerified: true });
+        // Handle restaurant verification
+        if (userType === 'restaurant') {
+            const restaurant = await Restaurant.findOneAndUpdate(
+                { email },
+                { isVerified: true },
+                { new: true }
+            );
+            
+            if (!restaurant) {
+                return res.status(404).json({ error: 'Restaurant not found' });
+            }
+
+            // Generate JWT token for restaurant
+            const token = jwt.sign({ 
+                restaurantId: restaurant._id,
+                role: 'restaurant'
+            }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+            await OTP.deleteOne({ _id: validOTP._id });
+            return res.json({ 
+                token,
+                role: 'restaurant',
+                message: 'Restaurant OTP verified successfully'
+            });
         }
 
-        res.status(200).json({ message: "OTP verified successfully. Registration complete." });
+        // Existing consumer verification logic
+        const user = await User.findOneAndUpdate(
+            { email },
+            { isVerified: true },
+            { new: true }
+        );
+
+        // Delete used OTP
+        await OTP.deleteOne({ _id: validOTP._id });
+
+        // Generate JWT token
+        const token = jwt.sign({ 
+            userId: user._id,
+            role: user.role
+        }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+        res.json({ 
+            token,
+            role: user.role,
+            message: 'OTP verified successfully'
+        });
     } catch (error) {
-        console.error("Error in verifyOTP:", error);
-        res.status(500).json({ error: "Internal server error." });
+        res.status(400).json({ error: error.message });
     }
 };
 
