@@ -68,38 +68,45 @@ exports.verifyOTP = async (req, res) => {
 exports.registerUser = async (req, res) => {
     try {
         const { email, password, role, ...rest } = req.body;
-    
+        
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: 'User already exists' });
+        }
+
         // Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000);
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-        await sendEmail({
-            to: email,
-            subject: 'Your Green Table Verification OTP',
-            html: `<div>
-                <h3>Green Table Verification Code</h3>
-                <p>Your OTP code is: <strong>${otp}</strong></p>
-                <p>This code expires in 5 minutes.</p>
-            </div>`
+        // Save OTP to database
+        await OTP.create({ 
+            email,
+            otp: otp.toString(),
+            expiresAt: otpExpiry
         });
+
+        // Send OTP email
+        const emailSent = await sendOTP(email, otp);
+        if (!emailSent) {
+            return res.status(500).json({ error: 'Failed to send OTP' });
+        }
+
+        // Create user (without verification)
         const user = new User({
-          email,
-          password: await bcrypt.hash(password, 10),
-          role,
-          otp,
-          otpExpiry,
-          ...rest
+            email,
+            password: await bcrypt.hash(password, 10),
+            role,
+            isVerified: false,
+            ...rest
         });
-    
+
         await user.save();
-        // Replace sendOTP with proper email implementation
-        await sendEmail({
-            to: email,
-            subject: 'OTP Verification',
-            text: `Your OTP code is: ${otp}`
-        });
         
-        res.status(201).json({ message: 'OTP sent to email' });
+        res.status(201).json({ 
+            message: 'OTP sent successfully',
+            email: email
+        });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -108,18 +115,39 @@ exports.registerUser = async (req, res) => {
 exports.verifyOTP = async (req, res) => {
     try {
         const { email, otp } = req.body;
-        const user = await User.findOne({ email, otp, otpExpiry: { $gt: new Date() } });
-    
-        if (!user) return res.status(400).json({ error: 'Invalid or expired OTP' });
-    
-        user.isVerified = true;
-        user.otp = undefined;
-        user.otpExpiry = undefined;
-        await user.save();
-    
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
         
-        res.json({ token, role: user.role });
+        // Find valid OTP
+        const validOTP = await OTP.findOne({ 
+            email,
+            otp,
+            expiresAt: { $gt: new Date() }
+        });
+
+        if (!validOTP) {
+            return res.status(400).json({ error: 'Invalid or expired OTP' });
+        }
+
+        // Update user verification status
+        const user = await User.findOneAndUpdate(
+            { email },
+            { isVerified: true },
+            { new: true }
+        );
+
+        // Delete used OTP
+        await OTP.deleteOne({ _id: validOTP._id });
+
+        // Generate JWT token
+        const token = jwt.sign({ 
+            userId: user._id,
+            role: user.role
+        }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+        res.json({ 
+            token,
+            role: user.role,
+            message: 'OTP verified successfully'
+        });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
