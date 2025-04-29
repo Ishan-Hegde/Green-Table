@@ -2,7 +2,7 @@
 
 class Config {
   // Base URL for the backend API
-  static const String baseUrl = 'https://green-table.onrender.com/api';
+  static const String baseUrl = 'https://green-table-ni1h.onrender.com/api';
 
   // Auth endpoints
   static String getLoginUrl(bool isConsumerSelected) {

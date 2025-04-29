@@ -368,7 +368,7 @@ class _OrdersPageState extends State<OrdersPage> {
       // Fetch restaurant data based on the stored email
       final response = await http.get(
         Uri.parse(
-            'https://green-table.onrender.com/api/restaurant/all'), // Get all restaurants
+            'https://green-table-ni1h.onrender.com/api/restaurant/all'), // Get all restaurants
       );
 
       if (response.statusCode == 200) {
@@ -476,7 +476,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://green-table.onrender.com/api/food/add'),
+        Uri.parse('https://green-table-ni1h.onrender.com/api/food/add'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },

@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthService {
   static Future<Map<String, dynamic>> loginUser(String email, String password) async {
     final response = await http.post(
-      Uri.parse('https://green-table.onrender.com/api/auth/login'),
+      Uri.parse('https://green-table-ni1h.onrender.com/api/auth/login'),
       body: jsonEncode({'email': email, 'password': password}),
       headers: {'Content-Type': 'application/json'},
     );
@@ -28,7 +28,7 @@ class AuthService {
     required String docType,
     required String userId,
   }) async {
-    final uri = Uri.parse('https://green-table.onrender.com/api/kyc/upload');
+    final uri = Uri.parse('https://green-table-ni1h.onrender.com/api/kyc/upload');
     final request = http.MultipartRequest('POST', uri);
     
     for (var doc in documents) {

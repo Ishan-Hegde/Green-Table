@@ -364,7 +364,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   void _initializeSocket() {
     socket =
-        IO.io('https://green-table.onrender.com', <String, dynamic>{
+        IO.io('https://green-table-ni1h.onrender.com', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });
@@ -407,7 +407,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   Future<void> _fetchRestaurants() async {
     final response = await http.get(Uri.parse(
-        'https://green-table.onrender.com/api/restaurant/all'));
+        'https://green-table-ni1h.onrender.com/api/restaurant/all'));
 
     if (response.statusCode == 200) {
       final List<dynamic> restaurants = jsonDecode(response.body);
@@ -612,7 +612,7 @@ class FoodListingsWidget extends StatelessWidget {
     final token = prefs.getString('token');
     
     final response = await http.post(
-      Uri.parse('https://green-table.onrender.com/api/orders'),
+      Uri.parse('https://green-table-ni1h.onrender.com/api/orders'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
