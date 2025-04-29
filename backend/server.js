@@ -9,6 +9,8 @@ const { initializeSocket } = require('./utils/socketManager'); // Remove this li
 require('dotenv').config();  // This should be at the very top
 const config = require('./config/config');
 const app = express();
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 
 // Middleware
 app.use(express.json());
@@ -46,13 +48,23 @@ const { Server } = require('socket.io');
 
 // Add after app initialization
 const server = require('http').createServer(app);
-const io = new Server(server, {
+const io = require('socket.io')(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'https://green-table.onrender.com',
-    methods: ['GET', 'POST']
-  }
+    origin: "http://localhost:5000", // Update with your client origin
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
 });
 
+// Remove duplicate middleware
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+// Remove the duplicate initializeSocket call at the bottom
+// server.listen(...) remains as the last line
 app.set('io', io); 
 
 // Add before routes
