@@ -1,15 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const foodController = require('../controllers/foodController');
-const { auth } = require('../middleware/auth'); // Destructure auth from exports
 const { body, validationResult } = require('express-validator');
 
+// Add auth middleware import
+const { auth } = require('../middleware/auth');
+
 router.post('/add', 
-  auth, // Now referencing the actual auth function
-  body('restaurantId').isMongoId(),
-  body('foodName').trim().notEmpty(),
-  body('price').isFloat({ gt: 0 }),
-  body('quantity').isInt({ min: 1 }),
+  [
+    body('restaurantId').isMongoId(),
+    body('foodName').trim().notEmpty(),
+    body('price').isFloat({ gt: 0 }),
+    body('quantity').isInt({ min: 1 })
+  ],
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

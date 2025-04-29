@@ -53,6 +53,8 @@ const io = new Server(server, {
   }
 });
 
+app.set('io', io); 
+
 // Add before routes
 app.use((req, res, next) => {
   req.io = io;
