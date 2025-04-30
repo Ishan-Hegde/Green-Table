@@ -6,6 +6,15 @@ exports.addToCart = async (req, res) => {
     try {
         const { foodItemId, quantity, restaurantId } = req.body;
         
+        // Check food item stock
+        const foodItem = await Food.findById(foodItemId);
+        if (foodItem.quantity < quantity) {
+            return res.status(400).json({ 
+                error: 'INSUFFICIENT_STOCK',
+                available: foodItem.quantity
+            });
+        }
+
         let cart = await Cart.findOne({ 
             consumer: req.user.id, 
             restaurant: restaurantId 

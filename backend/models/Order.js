@@ -39,6 +39,10 @@ const orderSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  deliveryLocation: {
+    type: { type: String, default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] }
   }
 });
 
