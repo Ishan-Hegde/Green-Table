@@ -1,8 +1,8 @@
 const express = require('express');
-const orderController = require('../controllers/OrderController');
 const router = express.Router();
+const orderController = require('../controllers/OrderController');
+const { auth } = require('../middleware/auth'); // Destructure auth from middleware
 
-router.post('/', orderController.createOrder);
-router.patch('/:id/status', orderController.updateOrderStatus);
+router.post('/', auth, orderController.createOrderFromCart);
 
 module.exports = router;

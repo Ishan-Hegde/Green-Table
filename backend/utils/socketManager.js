@@ -3,8 +3,15 @@ let ioInstance;
 const initializeSocket = (io) => {
   ioInstance = io;
   
+  // Add to existing connection handler
   io.on('connection', (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+    socket.on('join-restaurant', (restaurantId) => {
+      socket.join(`restaurant_${restaurantId}`);
+    });
+  
+    socket.on('order-status-update', (orderId, status) => {
+      io.to(`order_${orderId}`).emit('status-update', status);
+    });
   });
 };
 

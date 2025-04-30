@@ -5,6 +5,7 @@ const consumerRoutes = require('./routes/consumerRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const foodRoutes = require('./routes/foodRoutes');
+const cartRoutes = require('./routes/cartRoutes');
 const { initializeSocket } = require('./utils/socketManager'); // Remove this line
 require('dotenv').config();  // This should be at the very top
 const config = require('./config/config');
@@ -27,6 +28,7 @@ app.use('/api/restaurant', restaurantRoutes);
 
 // Add after other route declarations
 app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Mount food routes under /api prefix
 app.use('/api/food', foodRoutes);
@@ -50,7 +52,7 @@ const { Server } = require('socket.io');
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
   cors: {
-    origin: "http://localhost:5000", // Update with your client origin
+    origin: "https://green-table-ni1h.onrender.com", // Update with your client origin
     methods: ["GET", "POST"],
     credentials: true
   },

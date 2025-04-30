@@ -1,36 +1,54 @@
 const Order = require('../models/Order');
 const { calculateCreditScore } = require('../utils/creditSystem');
+const Food = require('../models/Food');
+const Restaurant = require('../models/restaurantModel');
+const User = require('../models/User');
+const { emitToRoom } = require('../utils/socketManager');
+const { calculateETA } = require('../utils/mapService');
 
-exports.createOrder = async (req, res) => {
-  try {
-    const order = await Order.create({
-      ...req.body,
-      consumerId: req.user.userId
-    });
+// exports.createOrder = async (req, res) => {
+//   try {
+//     const order = await Order.create({
+//       ...req.body,
+//       consumerId: req.user.userId
+//     });
     
-    // Real-time update
-    req.io.to(order.restaurantId.toString()).emit('new-order', order);
-    res.status(201).json(order);
+//     // Real-time update
+//     req.io.to(order.restaurantId.toString()).emit('new-order', order);
+//     res.status(201).json(order);
     
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
 
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(
+    const order = await Order.findById(req.params.id);
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Verify restaurant ownership using populated reference
+    const restaurant = await Restaurant.findById(order.restaurant);
+    if (restaurant.owner.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized access' });
+    }
+
+    const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
       { status: req.body.status },
       { new: true }
     );
 
-    // Real-time status update
-    req.io.to(order.consumerId.toString()).emit('status-update', order);
-    res.json(order);
-
+    emitToRoom(updatedOrder.id, 'status-update', updatedOrder);
+    res.json(updatedOrder);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ 
+      error: 'UPDATE_FAILED',
+      message: error.message 
+    });
   }
 };
 
@@ -51,32 +69,6 @@ exports.submitRating = async (req, res) => {
     
   } catch (error) {
     res.status(400).json({ error: error.message });
-  }
-};
-const { emitToRoom } = require('../utils/socketManager');
-const Restaurant = require('../models/restaurantModel');
-const User = require('../models/User');
-const { calculateETA } = require('../utils/mapService');
-
-exports.createOrder = async (req, res) => {
-  try {
-    const { consumerId, restaurantId, items } = req.body;
-    
-    const newOrder = new Order({
-      consumer: consumerId,
-      restaurant: restaurantId,
-      items,
-      status: 'pending',
-      location: req.user.location // Assuming location is stored in user
-    });
-
-    await newOrder.save();
-    emitToRoom(restaurantId.toString(), 'newOrder', newOrder);
-    
-    res.status(201).json(newOrder);
-  } catch (error) {
-    console.error('Order creation error:', error);
-    res.status(500).json({ error: 'Failed to create order' });
   }
 };
 
@@ -114,60 +106,6 @@ exports.assignDeliveryPartner = async (req, res) => {
   }
 };
 
-exports.updateOrderStatus = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { status, location } = req.body;
-    
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      { status, $push: { trackingHistory: { status, location } } },
-      { new: true }
-    );
-
-    emitToRoom(orderId, 'statusUpdate', order);
-    res.status(200).json(order);
-  } catch (error) {
-    console.error('Order update error:', error);
-    res.status(500).json({ error: 'Failed to update order' });
-  }
-};
-
-// Remove these duplicate functions:
-exports.assignDeliveryPartner = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { deliveryPartnerId } = req.body;
-
-    const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-
-    const restaurant = await Restaurant.findById(order.restaurant);
-    const consumer = await Consumer.findById(order.consumer);
-    
-    const eta = await calculateETA(
-      restaurant.location.coordinates,
-      consumer.location.coordinates
-    );
-
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
-      { 
-        deliveryPartner: deliveryPartnerId,
-        estimatedDeliveryTime: new Date(Date.now() + eta * 1000),
-        status: 'preparing'
-      },
-      { new: true }
-    );
-
-    emitToRoom(order.restaurant.toString(), 'deliveryAssigned', updatedOrder);
-    res.status(200).json(updatedOrder);
-  } catch (error) {
-    console.error('Delivery assignment error:', error);
-    res.status(500).json({ error: 'Failed to assign delivery partner' });
-  }
-};
-
 exports.getOrderDetails = async (req, res) => {
   try {
     const order = await Order.findById(req.params.orderId)
@@ -176,5 +114,85 @@ exports.getOrderDetails = async (req, res) => {
   } catch (error) {
     console.error('Order fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch order details' });
+  }
+};
+
+exports.createOrderFromCart = async (req, res) => {
+  try {
+    const cart = await Cart.findOne({ consumer: req.user.id });
+    
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ error: 'EMPTY_CART' });
+    }
+
+    const order = await Order.create({
+      consumer: req.user.id,
+      restaurant: cart.restaurant,
+      items: cart.items,
+      totalAmount: cart.items.reduce((acc, item) => 
+        acc + (item.foodItem.price * item.quantity), 0),
+      deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
+      status: 'pending'
+    });
+
+    // Clear cart
+    await Cart.deleteOne({ _id: cart._id });
+
+    // Notify restaurant
+    req.io.to(`restaurant_${cart.restaurant}`).emit('new-order', order);
+    
+    res.status(201).json({
+      message: 'Order created successfully',
+      orderId: order._id,  // Explicitly include order ID
+      status: order.status,
+      restaurant: order.restaurant
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'ORDER_FAILED', message: error.message });
+  }
+};
+
+exports.verifyDeliveryOTP = async (req, res) => {
+  try {
+    const { orderId, otp } = req.body;
+    
+    const order = await Order.findOne({
+      _id: orderId,
+      deliveryOTP: otp,
+      status: 'out-for-delivery'
+    });
+
+    if (!order) {
+      return res.status(400).json({ error: 'INVALID_OTP' });
+    }
+
+    order.status = 'delivered';
+    await order.save();
+
+    res.json({ message: 'Delivery verified successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'OTP_VERIFICATION_FAILED' });
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    emitToRoom(order.id, 'status-update', order);
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'UPDATE_FAILED',
+      message: error.message 
+    });
   }
 };

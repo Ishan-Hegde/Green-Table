@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const orderSchema = new mongoose.Schema({
+const cartSchema = new mongoose.Schema({
   consumer: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Consumer', 
+    ref: 'User', 
     required: true 
   },
   restaurant: { 
@@ -23,23 +23,10 @@ const orderSchema = new mongoose.Schema({
       min: 1
     }
   }],
-  status: {
-    type: String,
-    enum: ['pending', 'preparing', 'out-for-delivery', 'delivered', 'cancelled'],
-    default: 'pending'
-  },
-  totalAmount: {
-    type: Number,
-    required: true
-  },
-  deliveryOTP: {
-    type: String,
-    required: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
   }
 });
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = mongoose.model('Cart', cartSchema);
