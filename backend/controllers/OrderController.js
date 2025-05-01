@@ -31,9 +31,13 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Verify restaurant ownership using populated reference
-    const restaurant = await Restaurant.findById(order.restaurant);
-    if (restaurant.owner.toString() !== req.user.id) {
+    // Get the restaurant through the User model instead of Restaurant model
+    const restaurantUser = await User.findOne({
+      _id: order.restaurant,
+      role: 'restaurant'
+    });
+
+    if (!restaurantUser || restaurantUser._id.toString() !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized access' });
     }
 
@@ -122,6 +126,15 @@ exports.createOrderFromCart = async (req, res) => {
     try {
         const cart = await Cart.findOne({ consumer: req.user.id });
         
+        // Add delivery location validation
+        const deliveryLocation = {
+            type: 'Point',
+            coordinates: [
+                parseFloat(req.body.deliveryAddress.longitude),
+                parseFloat(req.body.deliveryAddress.latitude)
+            ]
+        };
+
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ error: 'EMPTY_CART' });
         }
@@ -130,6 +143,7 @@ exports.createOrderFromCart = async (req, res) => {
             consumer: req.user.id,
             restaurant: cart.restaurant,
             items: cart.items,
+            deliveryLocation, // Add validated location
             totalAmount: cart.items.reduce((acc, item) => 
                 acc + (item.foodItem.price * item.quantity), 0),
             deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
@@ -191,29 +205,5 @@ exports.verifyDeliveryOTP = async (req, res) => {
     res.json({ message: 'Delivery verified successfully' });
   } catch (error) {
     res.status(500).json({ error: 'OTP_VERIFICATION_FAILED' });
-  }
-};
-
-// Change from PATCH to POST in your router configuration
-// Existing controller method
-exports.updateOrderStatus = async (req, res) => {
-  try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status },
-      { new: true }
-    );
-
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-
-    emitToRoom(order.id, 'status-update', order);
-    res.json(order);
-  } catch (error) {
-    res.status(500).json({ 
-      error: 'UPDATE_FAILED',
-      message: error.message 
-    });
   }
 };
