@@ -70,6 +70,7 @@ exports.verifyOTP = async (req, res) => {
             }
 
             // Generate JWT token for restaurant
+            // Restaurant verification token generation
             const token = jwt.sign({ 
                 restaurantId: restaurant._id,
                 role: 'restaurant'
@@ -94,6 +95,7 @@ exports.verifyOTP = async (req, res) => {
         await OTP.deleteOne({ _id: validOTP._id });
 
         // Generate JWT token
+        // User verification token generation
         const token = jwt.sign({ 
             userId: user._id,
             role: user.role
@@ -229,5 +231,3 @@ exports.login = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
-// Remove the entire uploadKYC function and its references

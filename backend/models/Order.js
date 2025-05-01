@@ -34,7 +34,8 @@ const orderSchema = new mongoose.Schema({
   },
   deliveryOTP: {
     type: String,
-    required: true
+    required: true,
+    select: false  // Hide from general queries
   },
   createdAt: {
     type: Date,

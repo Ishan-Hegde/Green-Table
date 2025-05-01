@@ -144,7 +144,7 @@ exports.createOrderFromCart = async (req, res) => {
         
         res.status(201).json({
             message: 'Order created successfully',
-            orderId: order._id,  // Explicitly include order ID
+            orderId: order._id,  // Order ID included here
             status: order.status,
             restaurant: order.restaurant
         });
@@ -194,6 +194,8 @@ exports.verifyDeliveryOTP = async (req, res) => {
   }
 };
 
+// Change from PATCH to POST in your router configuration
+// Existing controller method
 exports.updateOrderStatus = async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(
