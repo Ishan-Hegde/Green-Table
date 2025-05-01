@@ -11,7 +11,7 @@ class AuthAPI {
     required String role,
   }) async {
     final response = await http.post(
-      Uri.parse('${Config.baseUrl}/register'),
+      Uri.parse('${Config.baseUrl}/auth/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name,

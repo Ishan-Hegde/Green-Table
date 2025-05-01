@@ -25,7 +25,9 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    // Auto-fill credentials from navigation arguments
+    _loadSavedCredentials();
+    
+    // Fixed WidgetsBinding callback implementation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null) {
@@ -35,6 +37,24 @@ class _LoginPageState extends State<LoginPage> {
           _autoFilled = true;
         });
       }
+    });
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _emailController.text = prefs.getString('username') ?? '';
+      _passwordController.text = prefs.getString('password') ?? '';
+      _autoFilled = _emailController.text.isNotEmpty;
+    });
+  }
+
+  Future<void> _useSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _emailController.text = prefs.getString('username') ?? '';
+      _passwordController.text = prefs.getString('password') ?? '';
+      _autoFilled = true;
     });
   }
 
@@ -142,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   const SizedBox(height: 80),
                   const Text(
-                    'Log In or Sign Up',
+                    'Welcome to Green Table!',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -220,11 +240,11 @@ class _LoginPageState extends State<LoginPage> {
                   ElevatedButton(
                     onPressed: _isLoading
                         ? null
-                        : () => loginUser(), // Trigger login function
+                        : () => loginUser(),
                     style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF00B200),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 125.0, vertical: 16),
+                            horizontal: 120.0, vertical: 17),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10))),
                     child: _isLoading
@@ -233,6 +253,18 @@ class _LoginPageState extends State<LoginPage> {
                             style:
                                 TextStyle(fontSize: 16, color: Colors.white)),
                   ),
+                  const SizedBox(height: 10),
+                  // TextButton(
+                  //   onPressed: _useSavedCredentials,
+                  //   child: Text(
+                  //     'Use Saved Credentials',
+                  //     style: TextStyle(
+                  //       color: Colors.blue[700],
+                  //       fontSize: 14,
+                  //     ),
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 10),
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),

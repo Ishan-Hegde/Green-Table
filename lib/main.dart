@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: Provider.of<ThemeProvider>(context).themeData,
+      themeMode: ThemeMode.system,
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
@@ -68,6 +68,40 @@ class MyApp extends StatelessWidget {
           child: child!,
         );
       },
+      theme: ThemeData(
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: FadeTransitionBuilder(),
+            TargetPlatform.iOS: FadeTransitionBuilder(),
+          },
+        ),
+      ),
+      darkTheme: ThemeData.dark().copyWith(
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: FadeTransitionBuilder(),
+            TargetPlatform.iOS: FadeTransitionBuilder(),
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class FadeTransitionBuilder extends PageTransitionsBuilder {
+  const FadeTransitionBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return FadeTransition(
+      opacity: animation.drive(CurveTween(curve: Curves.easeInOut)),
+      child: child,
     );
   }
 }
