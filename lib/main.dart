@@ -1,37 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:green_table/pages/login_page.dart';
+import 'package:green_table/screens/splash_screen.dart';
+import 'package:green_table/screens/auth/registration_screen.dart';
 import 'package:green_table/themes/theme_provider.dart';
+import 'package:green_table/utils/role_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 void main() async {
-  // Ensure that Hive is initialized before the app starts
+  // Preserve existing Hive initialization
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Get the application document directory to store Hive data
   final appDocumentDir = await getApplicationDocumentsDirectory();
-
-  // Create a custom directory inside the documents folder for Hive data
   final hiveDirectory = Directory('${appDocumentDir.path}/hive');
-
-  // Check if the directory exists, if not, create it
+  
   if (!await hiveDirectory.exists()) {
     await hiveDirectory.create(recursive: true);
   }
 
-  // Initialize Hive with the custom directory path
   await Hive.initFlutter(hiveDirectory.path);
-
-  // Open a box to store theme data or other app-specific data
   await Hive.openBox('appSettings');
 
-  runApp(ChangeNotifierProvider(
-    create: (context) => ThemeProvider(),
-    child: const MyApp(),
-  ));
+  // Add new providers while keeping existing theme setup
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        // Add other providers here as needed
+      ],
+      child: MyApp(),
+    ),
+  );
 }
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -39,9 +42,32 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      home: const LoginPage(),
       theme: Provider.of<ThemeProvider>(context).themeData,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const SplashScreen(),
+        '/registration': (context) => const RegistrationScreen(),
+        '/login': (context) => const LoginPage(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/dashboard') {
+          return MaterialPageRoute(builder: (_) => const RoleWrapper());
+        }
+        return null;
+      },
+      builder: (context, child) {
+        return PopScope(
+          canPop: navigatorKey.currentState?.canPop() ?? false,
+          onPopInvokedWithResult: (bool didPop, result) {
+            if (!didPop && (navigatorKey.currentState?.canPop() ?? false)) {
+              navigatorKey.currentState?.pop();
+            }
+          },
+          child: child!,
+        );
+      },
     );
   }
 }

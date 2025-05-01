@@ -2,7 +2,6 @@
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:green_table/pages/kyc_verification_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences for token storage
 import 'consumer_dash.dart'; // Assuming your ConsumerApp is in this file
@@ -20,13 +19,23 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool isConsumerSelected = true; // Track which toggle is selected
+  bool isConsumerSelected = true;
+  bool _autoFilled = false;
 
   @override
   void initState() {
     super.initState();
-    // Removed automatic navigation to dashboard on app start
-    // _checkAuthentication();
+    // Auto-fill credentials from navigation arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null) {
+        setState(() {
+          _emailController.text = args['email'] ?? '';
+          _passwordController.text = args['password'] ?? '';
+          _autoFilled = true;
+        });
+      }
+    });
   }
 
   Future<void> _checkAuthentication() async {
@@ -77,41 +86,7 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('token', token);
         await prefs.setString('userEmail', _emailController.text);
 
-        // Handle KYC status before navigation
-        if (responseJson['kycStatus'] == 'unverified') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const KYCVerificationScreen()),
-          );
-        } else if (responseJson['kycStatus'] == 'pending') {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Verification Pending'),
-              content: const Text('Your documents are under review. Please wait for approval.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        } else if (responseJson['kycStatus'] == 'rejected') {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Verification Rejected'),
-              content: const Text('Please resubmit your documents with corrections.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        } else {
+        if (response.statusCode == 200 || response.statusCode == 201) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -218,14 +193,14 @@ class _LoginPageState extends State<LoginPage> {
                     controller: _emailController,
                     decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon:
-                          const Icon(Icons.email, color: Color(0xFF00B200)),
+                      prefixIcon: const Icon(Icons.email, color: Color(0xFF00B200)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                           vertical: 12, horizontal: 16),
                     ),
+                    enabled: !_autoFilled, // Disable if auto-filled
                   ),
                   const SizedBox(height: 15),
                   TextField(
@@ -233,13 +208,13 @@ class _LoginPageState extends State<LoginPage> {
                     obscureText: true,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon:
-                          const Icon(Icons.lock, color: Color(0xFF00B200)),
+                      prefixIcon: const Icon(Icons.lock, color: Color(0xFF00B200)),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
                       contentPadding: const EdgeInsets.symmetric(
                           vertical: 12, horizontal: 16),
                     ),
+                    enabled: !_autoFilled, // Disable if auto-filled
                   ),
                   const SizedBox(height: 35),
                   ElevatedButton(
