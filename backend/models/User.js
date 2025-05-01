@@ -3,15 +3,9 @@ const Schema = mongoose.Schema;
 
 // Add loyalty program fields
 const userSchema = new Schema({
-  name: { type: String, required: [true, 'Name is required'] },
-  email: { type: String, required: [true, 'Email is required'], unique: true },
-  password: { type: String, required: [true, 'Password is required'] },
-  phone: {
-    type: String,
-    required: [true, 'Phone number is required'],
-    unique: true,
-    sparse: true
-  },
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
   role: { type: String, enum: ['consumer', 'restaurant'], required: true },
   isVerified: { type: Boolean, default: false },
   otp: { type: String },
@@ -20,7 +14,7 @@ const userSchema = new Schema({
   // Restaurant-specific fields
   restaurantName: String,
   creditScore: { type: Number, default: 0 },
-  
+
   // Consumer-specific fields
   orderHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
   loyaltyPoints: { type: Number, default: 0 },

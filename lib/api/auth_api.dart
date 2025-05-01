@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../config.dart';
+
 class AuthAPI {
   static Future<Map<String, dynamic>> register({
     required String name,
@@ -9,14 +11,14 @@ class AuthAPI {
     required String role,
   }) async {
     final response = await http.post(
-      Uri.parse('https://green-table-ni1h.onrender.com/api/auth/register'),
+      Uri.parse('${Config.baseUrl}/register'),
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name,
         'email': email,
         'password': password,
         'role': role,
       }),
-      headers: {'Content-Type': 'application/json'},
     );
 
     return {

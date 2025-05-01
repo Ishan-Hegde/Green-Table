@@ -7,8 +7,8 @@ import 'package:green_table/screens/auth/otp_verification_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});  // Add constructor
-  
+  const RegistrationScreen({super.key}); // Add constructor
+
   @override
   _RegistrationScreenState createState() => _RegistrationScreenState();
 }
@@ -18,6 +18,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+// New controller
   String _selectedRole = 'consumer';
   bool _isLoading = false;
 
@@ -31,7 +32,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           password: _passwordController.text,
           role: _selectedRole,
         );
-        
+
         if (response['success']) {
           Navigator.pushReplacement(
             context,
@@ -45,10 +46,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         } else {
           // Debug log to inspect full backend response
           print('Backend Response: $response');
-          
-          final errorMessage = response['error']?['message'] ??  // Changed to match backend error structure
-                             response['message'] ??
-                             'Registration failed';
+
+          final errorMessage = response['error']
+                  ?['message'] ?? // Changed to match backend error structure
+              response['message'] ??
+              'Registration failed';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMessage)),
           );
@@ -76,29 +78,33 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(labelText: 'Name'),
-                    validator: (value) => value!.isEmpty ? 'Required' : null,
+                    validator: (value) => value!.isEmpty ? 'Name is required' : null,
                   ),
                   TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(labelText: 'Email'),
-                    validator: (value) => value!.isEmpty ? 'Required' : null,
+                    validator: (value) => value!.isEmpty ? 'Email is required' : null,
                     keyboardType: TextInputType.emailAddress,
                   ),
                   TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(labelText: 'Password'),
                     obscureText: true,
-                    validator: (value) => value!.isEmpty ? 'Required' : null,
+                    validator: (value) => value!.isEmpty ? 'Password is required' : null,
                   ),
+                  // Removed phone number field
                   DropdownButtonFormField<String>(
                     value: _selectedRole,
+                    validator: (value) => value == null ? 'Role is required' : null,
                     items: ['consumer', 'restaurant']
                         .map((role) => DropdownMenuItem(
                               value: role,
                               child: Text(role.toUpperCase()),
                             ))
                         .toList(),
-                    onChanged: (value) => setState(() => _selectedRole = value!),
+                    onChanged: (value) =>
+                        setState(() => _selectedRole = value!),
+                    decoration: InputDecoration(labelText: 'Select Role'),
                   ),
                   ElevatedButton(
                     onPressed: () async {
