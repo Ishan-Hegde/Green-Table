@@ -3,7 +3,8 @@ const Order = require('../models/Order');
 
 exports.getRestaurantDashboard = async (req, res) => {
   try {
-    const restaurant = await User.findById(req.user.userId)
+    // Change from req.user.userId to req.user.id
+    const restaurant = await User.findById(req.user.id)
       .populate('creditScore')
       .populate({
         path: 'orders',

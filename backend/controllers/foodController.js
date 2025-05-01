@@ -212,3 +212,62 @@ exports.getLiveFoodItems = async (req, res) => {
     });
   }
 };
+
+exports.addFoodItem = async (req, res) => {
+    try {
+        const {
+            foodName,
+            quantity,
+            timeOfCooking,
+            expiryDate,
+            dietaryType,
+            servesPeople,
+            foodCategory,
+            ingredients
+        } = req.body;
+
+        // Enhanced validation
+        if (!foodName || !quantity || !timeOfCooking || !expiryDate || 
+            !dietaryType || !servesPeople || !foodCategory || !ingredients) {
+            return res.status(400).json({ 
+                error: 'MISSING_REQUIRED_FIELDS',
+                message: 'All mandatory fields must be provided' 
+            });
+        }
+
+        const newFood = await Food.create({
+            restaurant: req.user.id,
+            foodName,
+            quantity: parseInt(quantity, 10),
+            timeOfCooking: new Date(timeOfCooking),
+            expiryDate: new Date(expiryDate),
+            dietaryType: dietaryType.toLowerCase(),
+            servesPeople: parseInt(servesPeople, 10),
+            foodCategory: foodCategory.toLowerCase(),
+            ingredients: Array.isArray(ingredients) ? ingredients : ingredients.split(','),
+            // Add validation for new fields
+            nutritionalInfo: nutritionalInfo || {},
+            timeOfCooking: new Date(timeOfCooking),
+            expiryDate: new Date(expiryDate)
+        });
+
+        res.status(201).json({
+            code: 'FOOD_CREATED',
+            data: {
+                id: newFood._id,
+                name: newFood.foodName,
+                price: newFood.price,
+                quantity: newFood.quantity,
+                dietaryType: newFood.dietaryType,
+                servesPeople: newFood.servesPeople,
+                ingredients: newFood.ingredients,
+                timeOfCooking: newFood.timeOfCooking.toISOString(),
+                expiryDate: newFood.expiryDate.toISOString(),
+                shelfLife: Math.floor((newFood.expiryDate - newFood.timeOfCooking) / 3600000) + ' hours'
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: 'FOOD_CREATION_FAILED', message: error.message });
+    }
+};

@@ -31,13 +31,14 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Get the restaurant through the User model instead of Restaurant model
+    // Get the restaurant through the User model
     const restaurantUser = await User.findOne({
       _id: order.restaurant,
       role: 'restaurant'
     });
 
-    if (!restaurantUser || restaurantUser._id.toString() !== req.user.id) {
+    // Modified comparison to handle undefined values
+    if (!restaurantUser || String(restaurantUser._id) !== String(req.user.id)) {
       return res.status(403).json({ error: 'Unauthorized access' });
     }
 
