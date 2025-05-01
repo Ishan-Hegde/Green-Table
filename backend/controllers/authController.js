@@ -231,3 +231,44 @@ exports.login = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.getCurrentUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id)
+            .select('-password -__v');
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const updates = Object.keys(req.body);
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            req.body,
+            { new: true, runValidators: true }
+        ).select('-password');
+        res.json(user);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        const isMatch = await bcrypt.compare(req.body.currentPassword, user.password);
+        
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Current password is incorrect' });
+        }
+
+        user.password = await bcrypt.hash(req.body.newPassword, 10);
+        await user.save();
+        res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

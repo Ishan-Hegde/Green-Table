@@ -199,12 +199,83 @@ exports.verifyDeliveryOTP = async (req, res) => {
     });
     
     // Update restaurant analytics
+    // Add to verifyDeliveryOTP function
     await Restaurant.findByIdAndUpdate(order.restaurant, {
-      $inc: { totalOrders: 1, totalRevenue: order.totalAmount }
+      $inc: { 
+        totalOrders: 1,
+        quarterlyOrders: 1,
+        totalRevenue: order.totalAmount
+      },
+      $set: { 
+        averageRating: await calculateAverageRating(order.restaurant),
+        isBanned: await checkBanStatus(order.restaurant)
+      }
     });
+    
+    // New helper functions
+    const calculateAverageRating = async (restaurantId) => {
+      const result = await Order.aggregate([
+        { $match: { restaurant: restaurantId, rating: { $exists: true } } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" } } }
+      ]);
+      return result[0]?.avgRating || 0;
+    };
+    
+    const checkBanStatus = async (restaurantId) => {
+      const restaurant = await Restaurant.findById(restaurantId);
+      return restaurant.quarterlyOrders < 50 && restaurant.averageRating < 3.5;
+    };
 
+    const updateRestaurantStats = async (restaurantId, amount) => {
+      await Restaurant.findByIdAndUpdate(restaurantId, {
+        $inc: {
+          totalOrders: 1,
+          quarterlyOrders: 1,
+          totalRevenue: amount
+        }
+      });
+      
+      const stats = await Restaurant.findById(restaurantId);
+      if(stats.quarterlyOrders < 50 && stats.averageRating < 3.5) {
+        await Restaurant.findByIdAndUpdate(restaurantId, { isBanned: true });
+      }
+    };
+    
     res.json({ message: 'Delivery verified successfully' });
   } catch (error) {
     res.status(500).json({ error: 'OTP_VERIFICATION_FAILED' });
+  }
+};
+
+exports.updateDeliveryLocation = async (req, res) => {
+    try {
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            { deliveryLocation: req.body.location },
+            { new: true }
+        );
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getOrderTracking = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id)
+            .select('status deliveryLocation estimatedDeliveryTime');
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getDeliveryPath = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .select('currentLocation estimatedDeliveryTime');
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: 'TRACKING_FETCH_FAILED' });
   }
 };

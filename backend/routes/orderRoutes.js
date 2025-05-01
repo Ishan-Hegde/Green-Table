@@ -14,4 +14,7 @@ router.post('/:id/assign', auth, orderController.assignDeliveryPartner);
 // Add OTP verification endpoint
 router.post('/verify-otp', orderController.verifyDeliveryOTP);
 
+router.patch('/:id/location', auth, orderController.updateDeliveryLocation);
+router.get('/:id/track', auth, orderController.getOrderTracking);
+
 module.exports = router;

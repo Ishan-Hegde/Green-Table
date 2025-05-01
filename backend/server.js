@@ -6,6 +6,7 @@ const restaurantRoutes = require('./routes/restaurantRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const foodRoutes = require('./routes/foodRoutes');
 const cartRoutes = require('./routes/cartRoutes');
+const userRoutes = require('./routes/userRoutes');
 const { initializeSocket } = require('./utils/socketManager'); // Remove this line
 require('dotenv').config();  // This should be at the very top
 const config = require('./config/config');
@@ -32,6 +33,9 @@ app.use('/api/cart', cartRoutes);
 
 // Mount food routes under /api prefix
 app.use('/api/food', foodRoutes);
+
+// Add this line after other route mounts
+app.use('/api/users', userRoutes);
 
 // Error handling middleware (keep existing)
 app.use((err, req, res, next) => {

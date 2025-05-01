@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const userSchema = new mongoose.Schema({
+// Add loyalty program fields
+const userSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -15,7 +17,14 @@ const userSchema = new mongoose.Schema({
   restaurantName: String,
   creditScore: { type: Number, default: 0 },
   // Consumer-specific fields
-  orderHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }] // Remove this line
-}, { timestamps: true });
+  orderHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
+  loyaltyPoints: { type: Number, default: 0 },
+  favoriteRestaurants: [{ type: Schema.Types.ObjectId, ref: 'Restaurant' }],
+  reviewHistory: [{
+    restaurant: { type: Schema.Types.ObjectId, ref: 'Restaurant' },
+    rating: Number,
+    comment: String
+  }]
+});
 
 module.exports = mongoose.model('User', userSchema);
