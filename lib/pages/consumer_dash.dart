@@ -137,6 +137,14 @@ class _ConsumerAppState extends State<ConsumerApp> {
                   );
                 },
               ),
+              // In AppBar actions:
+              IconButton(
+                icon: const Icon(Icons.shopping_cart),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CartScreen(initialCartItems: [])),
+                ),
+              )
             ],
           ),
         ),
@@ -784,5 +792,107 @@ class PastOrdersPage extends StatelessWidget {
       ),
     );
     // You can add actual file download logic here using a package like 'flutter_downloader' or 'pdf'.
+  }
+}
+
+class CartScreen extends StatefulWidget {
+  final List<Map<String, dynamic>> initialCartItems;
+  
+  const CartScreen({super.key, required this.initialCartItems});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  late List<Map<String, dynamic>> _cartItems;
+  // Remove unused formKey and deliveryAddress
+  // final _formKey = GlobalKey<FormState>();
+  // String _deliveryAddress = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _cartItems = List.from(widget.initialCartItems);
+  }
+
+  void _removeFromCart(int index) {
+    setState(() {
+      _cartItems.removeAt(index);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Your Cart')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _cartItems.length,  // Changed from cartItems to _cartItems
+              itemBuilder: (context, index) {
+                final item = _cartItems[index];
+                return ListTile(
+                  title: Text(item['foodName'] ?? 'Unnamed Item'),
+                  subtitle: Text('Qty: ${item['quantity']}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _removeFromCart(index),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              child: const Text('Place Order (OTP will be sent)'),
+              onPressed: () => _placeOrder(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _placeOrder(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    
+    final response = await http.post(
+      Uri.parse('${Config.baseUrl}/orders'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({  // Removed _deliveryAddress reference
+        'items': _cartItems,
+        'status': 'pending'
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      final otp = _generateOTP();
+      _showOTPDialog(context, otp);
+    }
+  }
+
+  String _generateOTP() => (Random().nextInt(9000) + 1000).toString();
+
+  void _showOTPDialog(BuildContext context, String otp) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('OTP Verification'),
+        content: Text('Use this OTP at delivery: $otp'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          )
+        ],
+      ),
+    );
   }
 }

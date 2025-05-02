@@ -7,21 +7,27 @@ const User = require('../models/User');
 const { emitToRoom } = require('../utils/socketManager');
 const { calculateETA } = require('../utils/mapService');
 
-// exports.createOrder = async (req, res) => {
-//   try {
-//     const order = await Order.create({
-//       ...req.body,
-//       consumerId: req.user.userId
-//     });
+exports.createOrder = async (req, res) => {
+  try {
+    const order = await Order.create({
+      ...req.body,
+      consumerId: req.user.id,
+      otp: Math.floor(1000 + Math.random() * 9000).toString()
+    });
     
-//     // Real-time update
-//     req.io.to(order.restaurantId.toString()).emit('new-order', order);
-//     res.status(201).json(order);
+    res.status(201).json({
+      status: 'success',
+      data: order
+    });
     
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Order creation failed'
+    });
+  }
+};
+const { calculateETA } = require('../utils/mapService');
 
 exports.updateOrderStatus = async (req, res) => {
   try {
