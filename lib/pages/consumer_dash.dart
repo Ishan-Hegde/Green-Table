@@ -546,7 +546,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                           itemBuilder: (context, foodIndex) {
                             final foodItem = restaurant['foodItems'][foodIndex];
                             return ListTile(
-                              title: Text(foodItem['name'] ?? 'Unnamed Item'),
+                              title: Text(foodItem['foodName'] ?? 'Unnamed Item'),  // Changed from 'name'
                               subtitle: Text(
                                 foodItem['description'] ?? 'No description',
                                 maxLines: 2,
