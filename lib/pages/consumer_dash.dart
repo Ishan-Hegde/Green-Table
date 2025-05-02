@@ -38,11 +38,19 @@ class _ConsumerAppState extends State<ConsumerApp> {
   Color primaryGreen = Colors.green[700]!;
 
   // Navigation items
-  final List<Widget> _widgetOptions = <Widget>[
-    FoodForGoodPage(),
-    AvailablePickupsPage(),
-    PastOrdersPage(),
-  ];
+  final List<Map<String, dynamic>> _cartItems = []; // Add cart state here
+
+  late final List<Widget> _widgetOptions;
+
+  @override
+  void initState() {
+    super.initState();
+    _widgetOptions = <Widget>[
+      FoodForGoodPage(cartItems: _cartItems),
+      AvailablePickupsPage(),
+      PastOrdersPage(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -137,14 +145,13 @@ class _ConsumerAppState extends State<ConsumerApp> {
                   );
                 },
               ),
-              // In AppBar actions:
-              IconButton(
-                icon: const Icon(Icons.shopping_cart),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CartScreen(initialCartItems: [])),
-                ),
-              )
+IconButton(
+  icon: const Icon(Icons.shopping_cart),
+  onPressed: () => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => CartScreen(initialCartItems: _cartItems)),
+  ),
+)
             ],
           ),
         ),
@@ -353,6 +360,10 @@ class ProfilePage extends StatelessWidget {
 
 // Page 1: Food For Good
 class FoodForGoodPage extends StatefulWidget {
+  final List<Map<String, dynamic>> cartItems;
+  
+  const FoodForGoodPage({super.key, required this.cartItems});
+
   @override
   _FoodForGoodPageState createState() => _FoodForGoodPageState();
 }
@@ -360,7 +371,6 @@ class FoodForGoodPage extends StatefulWidget {
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
   List<Map<String, dynamic>> _restaurants = [];
   late IO.Socket socket;
-  final List<Map<String, dynamic>> _cartItems = [];
 
   @override
   void initState() {
@@ -562,14 +572,14 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                               ),
                               trailing: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: _cartItems.contains(foodItem) 
+                                  backgroundColor: widget.cartItems.contains(foodItem) 
                                       ? Colors.grey 
                                       : const Color(0xFF00B200),
-                                  ),
+                                ),
                                 onPressed: () {
-                                  if (!_cartItems.contains(foodItem)) {
+                                  if (!widget.cartItems.contains(foodItem)) {
                                     setState(() {
-                                      _cartItems.add(foodItem); // Now using properly declared state
+                                      widget.cartItems.add(foodItem);
                                     });
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -578,10 +588,9 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                                       ),
                                     );
                                   }
-                                  setState(() {});
                                 },
                                 child: Text(
-                                  _cartItems.contains(foodItem) ? 'Claimed' : 'Claim',
+                                  widget.cartItems.contains(foodItem) ? 'Claimed' : 'Claim',
                                   style: const TextStyle(color: Colors.white),
                                 ),
                               ),
@@ -825,14 +834,11 @@ class CartScreen extends StatefulWidget {
   const CartScreen({super.key, required this.initialCartItems});
 
   @override
-  State<CartScreen> createState() => _CartScreenState();
+  _CartScreenState createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
   late List<Map<String, dynamic>> _cartItems;
-  // Remove unused formKey and deliveryAddress
-  // final _formKey = GlobalKey<FormState>();
-  // String _deliveryAddress = '';
 
   @override
   void initState() {
@@ -840,10 +846,44 @@ class _CartScreenState extends State<CartScreen> {
     _cartItems = List.from(widget.initialCartItems);
   }
 
-  void _removeFromCart(int index) {
+  void _removeItem(int index) {
     setState(() {
       _cartItems.removeAt(index);
     });
+  }
+
+  double _calculateTotal() {
+    return _cartItems.fold(0, (sum, item) => sum + (item['price'] ?? 0.0));
+  }
+
+  Future<void> _placeOrder() async {
+    if (!mounted) return;
+    
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    
+    try {
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/orders'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'items': _cartItems,
+          'status': 'pending'
+        }),
+      );
+
+      if (response.statusCode == 201 && mounted) {
+        setState(() => _cartItems.clear());
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order failed: $e')),
+      );
+    }
   }
 
   @override
@@ -854,119 +894,26 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: _cartItems.length,  // Changed from cartItems to _cartItems
-              itemBuilder: (context, index) {
-                final item = _cartItems[index];
-                return Dismissible(
-                  key: Key(item['id'].toString()),
-                  onDismissed: (direction) => _removeFromCart(index),
-                  background: Container(color: Colors.red),
-                  child: ListTile(
-                    title: Text(item['name']),
-                    subtitle: Text('₹${item['price']}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle),
-                      onPressed: () => _removeFromCart(index),
-                    ),
-                  ),
-                );
-              },
+              itemCount: _cartItems.length,
+              itemBuilder: (context, index) => ListTile(
+                title: Text(_cartItems[index]['foodName'] ?? 'Unnamed Item'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () => _removeItem(index),
+                ),
+              ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              child: const Text('Place Order (OTP will be sent)'),
-              onPressed: () => _placeOrder(),
-            ),
+            child: Text('Total: \$${_calculateTotal().toStringAsFixed(2)}'),
           ),
         ],
       ),
-    );
-  }
-
-  String _generateOTP() => (Random().nextInt(9000) + 1000).toString();
-
-  void _showOTPDialog(BuildContext context, String otp) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('OTP Verification'),
-        content: Text('Use this OTP at delivery: $otp'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          )
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: _placeOrder,
+        child: const Icon(Icons.check),
       ),
     );
-  }
-
-  void _checkout() {
-    if (_cartItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your cart is empty')),
-      );
-      return;
-    }
-
-    // Show confirmation dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm Order (${_cartItems.length} items)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total claimed items: ${_cartItems.length}'),
-            SizedBox(height: 16),
-            Text('Are you sure you want to claim these items?'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF00B200),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              _placeOrder();
-            },
-            child: Text('Confirm Claim'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _placeOrder() async {
-    try {
-      // Implement your order placement API call here
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/orders'),
-        body: json.encode({
-          'items': _cartItems.map((item) => item['id']).toList(),
-        }),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order placed successfully!')),
-        );
-        setState(() => _cartItems.clear());
-        Navigator.pop(context); // Close cart screen
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to place order: $e')),
-      );
-    }
   }
 }

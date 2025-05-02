@@ -27,7 +27,6 @@ exports.createOrder = async (req, res) => {
     });
   }
 };
-const { calculateETA } = require('../utils/mapService');
 
 exports.updateOrderStatus = async (req, res) => {
   try {
