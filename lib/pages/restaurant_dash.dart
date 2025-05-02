@@ -474,21 +474,22 @@ Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': 'Bearer ${(await SharedPreferences.getInstance()).getString('token')}'
       },      
-      // Update the API request body to:
       body: jsonEncode({
         'restaurantId': restaurantId,
+        'restaurantName': restaurantName, // Add restaurant name
         'foodName': nameController.text.trim(),
         'price': price,
         'quantity': quantity,
         'category': categoryController.text.trim(),
-        'timeOfCooking': '${DateFormat('yyyy-MM-ddTHH:mm:ss').format(
+        'description': descriptionController.text.trim(), // Add description
+        'timeOfCooking': DateFormat('yyyy-MM-ddTHH:mm:ss').format(
           DateFormat('yyyy-MM-dd HH:mm').parse(
             '${expiryDateController.text} ${timeOfCookingController.text}'
           )
-        )}Z',
-        'expiryDate': DateFormat('yyyy-MM-ddTHH:mm:ss').parse(
-          '${expiryDateController.text}T23:59:59'
-        ).toIso8601String(),
+        ),
+        'expiryDate': DateFormat('yyyy-MM-ddTHH:mm:ss').format(
+          DateFormat('yyyy-MM-dd').parse(expiryDateController.text)
+        ),
       }),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -755,3 +756,4 @@ Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
     }
   }
 }
+
