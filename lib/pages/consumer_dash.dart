@@ -632,7 +632,7 @@ class FoodListingsWidget extends StatelessWidget {
     );
   }
 
-  void _placeOrder() async {
+  Future<void> _placeOrder() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     
@@ -839,11 +839,34 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   late List<Map<String, dynamic>> _cartItems;
-
+  
   @override
   void initState() {
     super.initState();
     _cartItems = List.from(widget.initialCartItems);
+    _fetchCartDetails(); // Add initialization call
+  }
+
+  Future<void> _fetchCartDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${Config.baseUrl}/cart'),
+        headers: {'Authorization': 'Bearer $token'}
+      );
+      
+      if (response.statusCode == 200) {
+        setState(() {
+          _cartItems = List.from(jsonDecode(response.body));
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load cart: $e'))
+      );
+    }
   }
 
   void _removeItem(int index) {
@@ -852,38 +875,77 @@ class _CartScreenState extends State<CartScreen> {
     });
   }
 
-  double _calculateTotal() {
-    return _cartItems.fold(0, (sum, item) => sum + (item['price'] ?? 0.0));
-  }
-
+  // Add this new method for placing orders
   Future<void> _placeOrder() async {
-    if (!mounted) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    
     try {
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/orders'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'items': _cartItems,
-          'status': 'pending'
-        }),
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      
+      // Retrieve current cart data
+      final cartResponse = await http.get(
+        Uri.parse('${Config.baseUrl}/api/cart'),
+        headers: {'Authorization': 'Bearer $token'},
       );
-
-      if (response.statusCode == 201 && mounted) {
-        setState(() => _cartItems.clear());
-        Navigator.of(context).pop();
+  
+      if (cartResponse.statusCode != 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load cart details')),
+        );
+        return;
+      }
+  
+      final cartData = jsonDecode(cartResponse.body);
+      
+      // Prepare order payload with proper structure
+      final orderPayload = {
+        'consumer': cartData['consumer'],
+        'restaurant': cartData['restaurant'],
+        'items': cartData['items'].map((item) => {
+          'foodItem': item['foodItem']['_id'],
+          'quantity': item['quantity']
+        }).toList(),
+        'deliveryAddress': {
+          'type': 'Point',
+          'coordinates': [72.8777, 19.0760]
+        }
+      };
+  
+      // Submit order
+      final orderResponse = await http.post(
+        Uri.parse('${Config.baseUrl}/api/orders'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'
+        },
+        body: jsonEncode(orderPayload),
+      );
+  
+      if (orderResponse.statusCode == 201) {
+        // Clear both local and server cart
+        _cartItems.clear();
+        await http.delete(
+          Uri.parse('${Config.baseUrl}/api/cart'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order placed successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order failed: ${orderResponse.body}')),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order failed: $e')),
+        SnackBar(content: Text('Order failed: ${e.toString()}')),
       );
     }
+  }
+
+  double _calculateTotal() {
+    return _cartItems.fold(0, (sum, item) => sum + (item['price'] ?? 0.0));
   }
 
   @override
@@ -911,8 +973,9 @@ class _CartScreenState extends State<CartScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _placeOrder,
-        child: const Icon(Icons.check),
+        backgroundColor: const Color(0xFF00B200),
+        onPressed: () => _placeOrder(),
+        child: const Icon(Icons.check, color: Colors.white),
       ),
     );
   }

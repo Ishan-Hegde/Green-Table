@@ -756,4 +756,3 @@ Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
     }
   }
 }
-

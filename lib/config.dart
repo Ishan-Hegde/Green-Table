@@ -22,4 +22,5 @@ class Config {
   // Location endpoints
   static const String locationUpdate = '$baseUrl/location/update';
   static const String getLocation = '$baseUrl/location';
+  static const String cartDetails = '$baseUrl/cart';
 }
