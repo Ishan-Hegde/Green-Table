@@ -350,7 +350,7 @@ class FoodForGoodPage extends StatefulWidget {
 }
 
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
-  final List<Map<String, dynamic>> _restaurants =
+  List<Map<String, dynamic>> _restaurants =
       []; // This will be populated from the backend
   late IO.Socket socket;
 
@@ -406,22 +406,32 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   Future<void> _fetchRestaurants() async {
     final response = await http.get(Uri.parse(
-        'https://green-table-ni1h.onrender.com/api/restaurant/live'));
+        '${Config.baseUrl}/food/available')); // Changed to direct food endpoint
 
     if (response.statusCode == 200) {
-      final List<dynamic> restaurants = jsonDecode(response.body);
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      final List<dynamic> foodListings = responseData['data'] ?? [];
+      
+      // Group food items by restaurant
+      final Map<String, List<dynamic>> restaurantMap = {};
+      for (var food in foodListings) {
+        final restaurantId = food['restaurantId'];
+        if (!restaurantMap.containsKey(restaurantId)) {
+          restaurantMap[restaurantId] = [];
+        }
+        restaurantMap[restaurantId]!.add(food);
+      }
+
       setState(() {
-        _restaurants.addAll(restaurants.map((restaurant) => {
-          'id': restaurant['_id'],
-          'restaurantId': restaurant['_id'],
-          'name': restaurant['name'],
-          'restaurantName': restaurant['name'],
-          'foodItems': restaurant['foodItems'] ?? [], // Initialize with empty array if null
-        }));
-// Initialize filtered restaurants
+        _restaurants = restaurantMap.entries.map((entry) => {
+          'id': entry.key,
+          'restaurantId': entry.key,
+          'restaurantName': entry.value.isNotEmpty 
+              ? entry.value.first['restaurantName'] 
+              : 'Unknown Restaurant',
+          'foodItems': entry.value,
+        }).toList();
       });
-    } else {
-      print('Failed to load restaurants');
     }
   }
 
