@@ -10,25 +10,18 @@ exports.createFoodItem = async (req, res) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-
+    
     try {
-        const { restaurantId, foodName, description, price, quantity, expiryDate } = req.body;
-        
-        // Temporary direct creation without auth checks
         const foodItem = await Food.create({
-            restaurantId,
-            foodName,
-            description: description || 'Default description',
-            price: parseFloat(price).toFixed(2),
-            quantity: parseInt(quantity),
-            category: 'uncategorized',
-            timeOfCooking: new Date(),
-            restaurantName: 'Restaurant Name Placeholder',
-            expiryDate: expiryDate ? new Date(expiryDate) : new Date(Date.now() + 24 * 60 * 60 * 1000)
+            ...req.body,
+            restaurantId: req.body.restaurantId,
+            isAvailable: true
         });
 
+        // Broadcast real-time update to consumers
+        req.app.get('io').emit('new-food-item', foodItem);
         logger.info('Food item created successfully', { foodId: foodItem._id });
-        
+
         // Broadcast real-time update
         if (req.io && restaurantId) {
             req.io.to(restaurantId.toString()).emit('foodUpdate', foodItem);
@@ -62,9 +55,9 @@ exports.getLiveFoodItems = async (req, res) => {
 
         res.json(foodItems);
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'SERVER_ERROR',
-            message: 'Failed to retrieve food items' 
+            message: 'Failed to retrieve food items'
         });
     }
 };
@@ -92,27 +85,27 @@ exports.getFoodItemsByRestaurant = async (req, res) => {
         const { restaurantId } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'INVALID_ID_FORMAT',
-                message: 'Invalid restaurant ID format' 
+                message: 'Invalid restaurant ID format'
             });
         }
 
         const restaurant = await Restaurant.findById(restaurantId);
         if (!restaurant) {
-            logger.error('Restaurant not found', { restaurantId });
+            logger.error('Restaurant lookup failed', { restaurantId });
             return res.status(404).json({
-                code: 'RESTAURANT_NOT_FOUND',
-                message: 'Specified restaurant does not exist'
+                error: 'RESTAURANT_NOT_FOUND',
+                message: 'No restaurant found with provided ID'
             });
         }
 
         // Convert string ID to ObjectId for comparison
         if (req.user.role !== 'restaurant' || !req.user.id.equals(restaurant._id.toString())) {
-          return res.status(403).json({ 
-            error: 'UNAUTHORIZED',
-            message: 'You do not own this restaurant' 
-          });
+            return res.status(403).json({
+                error: 'UNAUTHORIZED',
+                message: 'You do not own this restaurant'
+            });
         }
         const foodItems = await Food.find({ restaurantId: new mongoose.Types.ObjectId(restaurantId) });
 
@@ -161,113 +154,59 @@ exports.updateFoodAvailability = async (req, res) => {
 };
 
 exports.claimFoodItem = async (req, res) => {
-  try {
-    const { foodId, quantity } = req.body;
-    const foodItem = await Food.findById(foodId);
-    
-    if (!foodItem.isAvailable || foodItem.quantity < quantity) {
-      return res.status(400).json({ 
-        error: 'INSUFFICIENT_QUANTITY',
-        message: 'Not enough food available' 
-      });
+    try {
+        // Rename destructured variable
+        const { foodId, quantity: requestedQuantity } = req.body;
+        const foodItem = await Food.findById(foodId);
+
+        if (!foodItem.isAvailable || foodItem.quantity < requestedQuantity) {
+            return res.status(400).json({
+                error: 'INSUFFICIENT_QUANTITY',
+                message: 'Not enough food available'
+            });
+        }
+
+        foodItem.quantity -= requestedQuantity;
+        foodItem.claimedBy.push({
+            consumerId: req.user.id,
+            // Use renamed variable
+            quantity: requestedQuantity,
+            claimedAt: new Date()
+        });
+
+        if (foodItem.quantity === 0) {
+            foodItem.isAvailable = false;
+        }
+
+        await foodItem.save();
+        res.json({
+            message: 'Food claimed successfully',
+            remainingQuantity: foodItem.quantity
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            error: 'SERVER_ERROR',
+            message: 'Failed to claim food item'
+        });
     }
-
-    foodItem.quantity -= quantity;
-    foodItem.claimedBy.push({
-      consumerId: req.user.id,
-      quantity
-    });
-    
-    if (foodItem.quantity === 0) {
-      foodItem.isAvailable = false;
-    }
-
-    await foodItem.save();
-    res.json({ 
-      message: 'Food claimed successfully',
-      remainingQuantity: foodItem.quantity 
-    });
-
-  } catch (error) {
-    res.status(500).json({ 
-      error: 'SERVER_ERROR',
-      message: 'Failed to claim food item' 
-    });
-  }
 };
 
 // Update getLiveFoodItems to filter available foods
 exports.getLiveFoodItems = async (req, res) => {
-  try {
-    const foodItems = await Food.find({
-      isAvailable: true,
-      quantity: { $gt: 0 },
-      expiryDate: { $gt: new Date() }
-    }).populate('restaurantId', 'name location');
-    res.json(foodItems);
-  } catch (error) {
-    res.status(500).json({ 
-      error: 'SERVER_ERROR',
-      message: 'Failed to retrieve food items' 
-    });
-  }
-};
-
-exports.addFoodItem = async (req, res) => {
     try {
-        const {
-            foodName,
-            quantity,
-            timeOfCooking,
-            expiryDate,
-            dietaryType,
-            servesPeople,
-            foodCategory,
-            ingredients
-        } = req.body;
-
-        // Enhanced validation
-        if (!foodName || !quantity || !timeOfCooking || !expiryDate || 
-            !dietaryType || !servesPeople || !foodCategory || !ingredients) {
-            return res.status(400).json({ 
-                error: 'MISSING_REQUIRED_FIELDS',
-                message: 'All mandatory fields must be provided' 
-            });
-        }
-
-        const newFood = await Food.create({
-            restaurant: req.user.id,
-            foodName,
-            quantity: parseInt(quantity, 10),
-            timeOfCooking: new Date(timeOfCooking),
-            expiryDate: new Date(expiryDate),
-            dietaryType: dietaryType.toLowerCase(),
-            servesPeople: parseInt(servesPeople, 10),
-            foodCategory: foodCategory.toLowerCase(),
-            ingredients: Array.isArray(ingredients) ? ingredients : ingredients.split(','),
-            // Add validation for new fields
-            nutritionalInfo: nutritionalInfo || {},
-            timeOfCooking: new Date(timeOfCooking),
-            expiryDate: new Date(expiryDate)
-        });
-
-        res.status(201).json({
-            code: 'FOOD_CREATED',
-            data: {
-                id: newFood._id,
-                name: newFood.foodName,
-                price: newFood.price,
-                quantity: newFood.quantity,
-                dietaryType: newFood.dietaryType,
-                servesPeople: newFood.servesPeople,
-                ingredients: newFood.ingredients,
-                timeOfCooking: newFood.timeOfCooking.toISOString(),
-                expiryDate: newFood.expiryDate.toISOString(),
-                shelfLife: Math.floor((newFood.expiryDate - newFood.timeOfCooking) / 3600000) + ' hours'
-            }
-        });
-
+        // In getLiveFoodItems
+        const foodItems = await Food.find({
+          quantity: { $gt: 0 },
+          expiryDate: { $gt: new Date() }
+        })
+        .limit(25) // Add pagination
+        .skip((page - 1) * limit);
+        res.json(foodItems);
     } catch (error) {
-        res.status(500).json({ error: 'FOOD_CREATION_FAILED', message: error.message });
+        res.status(500).json({
+            error: 'SERVER_ERROR',
+            message: 'Failed to retrieve food items'
+        });
     }
 };

@@ -40,16 +40,17 @@ class FoodItem {
     this.isAvailable = true,
   });
 
+  // Update fromJson method
   factory FoodItem.fromJson(Map<String, dynamic> json) {
     return FoodItem(
       id: json['_id'] ?? '',
-      name: json['name'] ?? '',
+      name: json['foodName'] ?? '', // Changed from 'name'
       description: json['description'] ?? '',
       price: (json['price'] ?? 0.0).toDouble(),
       quantity: json['quantity'] ?? 0,
-      expiryDate: DateTime.parse(json['expiryDate'] ?? DateTime.now().toIso8601String()),
-      timeOfCooking: DateTime.parse(json['timeOfCooking'] ?? DateTime.now().toIso8601String()),
-      restaurantId: json['restaurantId'] ?? '',
+      expiryDate: DateTime.parse(json['expiryDate'].toString()),
+      timeOfCooking: DateTime.parse(json['timeOfCooking'].toString()),
+      restaurantId: json['restaurantId']?.toString() ?? '',
       restaurantName: json['restaurantName'] ?? '',
     );
   }

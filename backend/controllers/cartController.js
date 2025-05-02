@@ -89,77 +89,17 @@ exports.getCart = async (req, res) => {
 };
 
 exports.checkoutCart = async (req, res) => {
-    const session = await mongoose.startSession();
-    try {
-        session.startTransaction();
-        
-        const cart = await Cart.findOne({ consumer: req.user.id })
-            .populate({
-                path: 'items.foodItem',
-                model: 'Food',
-                select: 'price quantity'
-            }).session(session);
-
-        if (!cart || cart.items.length === 0) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ error: 'EMPTY_CART' });
-        }
-
-        // Revalidate stock and calculate total
-        let totalAmount = 0;
-        for (const item of cart.items) {
-            const food = await Food.findById(item.foodItem._id).session(session);
-            if (food.quantity < item.quantity) {
-                await session.abortTransaction();
-                return res.status(400).json({
-                    error: 'INSUFFICIENT_STOCK',
-                    item: food.foodName,
-                    available: food.quantity
-                });
-            }
-            food.quantity -= item.quantity;
-            await food.save({ session });
-            totalAmount += food.price * item.quantity;
-        }
-
-        // Create order with OTP
-        const order = await Order.create([{
-            consumer: req.user.id,
-            restaurant: cart.restaurant,
-            items: cart.items.map(item => ({
-                foodItem: item.foodItem._id,
-                quantity: item.quantity
-            })),
-            totalAmount,
-            deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
-            status: 'pending'
-        }], { session });
-
-        await Cart.deleteOne({ _id: cart._id }).session(session);
-        await session.commitTransaction();
-        session.endSession();
-        
-        // Socket.io notification
-        const io = req.app.get('io');
-        io.to(`restaurant_${cart.restaurant.toString()}`).emit('new-order', order[0]);
-
-        res.status(200).json({
-            message: 'Checkout successful',
-            orderId: order[0]._id,
-            otp: order[0].deliveryOTP,
-            total: order[0].totalAmount
-        });
-
-    } catch (error) {
-        if (session.inTransaction()) {
-            await session.abortTransaction();
-        }
-        session.endSession();
-        console.error('Checkout error:', error);
-        res.status(500).json({ 
-            error: 'CHECKOUT_FAILED',
-            message: error.message 
-        });
-    }
-};
+  const order = await Order.create({
+    ...req.body,
+    status: 'pending',
+    otp: Math.floor(1000 + Math.random() * 9000).toString()
+  });
+  
+  // Notify restaurant
+  req.app.get('io').to(`restaurant_${order.restaurant}`).emit('new-order', order);
+  
+  res.json({
+    otp: order.otp,
+    estimatedDelivery: '30 mins'
+  });
+}

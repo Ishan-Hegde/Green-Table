@@ -11,7 +11,7 @@ const foodSchema = new mongoose.Schema({
   restaurantName: { type: String, required: true },
   foodName: { type: String, required: true },
   description: { type: String, required: true },
-  price: { type: Number, required: true },
+  price: { type: Number, required: false },
   quantity: { type: Number, required: true },
   expiryDate: { type: Date, required: true },
   timeOfCooking: { type: Date, required: true },

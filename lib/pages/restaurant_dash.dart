@@ -351,6 +351,9 @@ class _OrdersPageState extends State<OrdersPage> {
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController expiryDateController = TextEditingController();
   final TextEditingController timeOfCookingController = TextEditingController();
+  final TextEditingController caloriesController = TextEditingController();
+  final TextEditingController proteinController = TextEditingController();
+  final TextEditingController carbsController = TextEditingController();
 
   @override
   void initState() {
@@ -367,31 +370,19 @@ class _OrdersPageState extends State<OrdersPage> {
     if (storedUserEmail != null) {
       // Fetch restaurant data based on the stored email
       final response = await http.get(
-        Uri.parse(
-            'https://green-table-ni1h.onrender.com/api/restaurant/all'), // Get all restaurants
+        Uri.parse('${Config.baseUrl}/users/me'),
+        headers: {
+          'Authorization': 'Bearer ${prefs.getString('token')}',
+          'Content-Type': 'application/json'
+        },
       );
 
       if (response.statusCode == 200) {
-        // If the server returns a 200 OK response, parse the JSON data
-        final List<dynamic> restaurants = jsonDecode(response.body);
-
-        // Find the restaurant corresponding to the stored email
-        for (var restaurant in restaurants) {
-          if (restaurant['email'] == storedUserEmail) {
-            setState(() {
-              userEmail = storedUserEmail;
-              restaurantId = restaurant['_id']; // Get the restaurant ID
-              restaurantName = restaurant['name']; // Get the restaurant Name
-            });
-            break;
-          }
-        }
-      } else {
-        // Handle any errors that might occur while fetching data
+        final restaurantData = jsonDecode(response.body);
         setState(() {
-          userEmail = storedUserEmail;
-          restaurantId = 'Error fetching restaurant ID';
-          restaurantName = 'Unknown Restaurant';
+          userEmail = restaurantData['email'] ?? '';
+          restaurantId = restaurantData['_id'] ?? '';
+          restaurantName = restaurantData['name'] ?? '';
         });
       }
     } else {
@@ -408,12 +399,15 @@ class _OrdersPageState extends State<OrdersPage> {
   Future<void> _fetchFoodItems() async {
     if (restaurantId.isNotEmpty) {
       const maxRetries = 3;
-      http.Response response = http.Response('', 500); // Initialize with default
+      http.Response response = http.Response('', 500);
       
       for (int attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           response = await http.get(
             Uri.parse('${Config.baseUrl}/food/$restaurantId'),
+            headers: {
+              'Authorization': 'Bearer ${(await SharedPreferences.getInstance()).getString('token')}'
+            },
           );
           if (response.statusCode == 200) break;
         } catch (e) {
@@ -465,57 +459,55 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-  // Add a new food item listing
-  Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
-    if (restaurantId.isEmpty || restaurantName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Restaurant details are missing.')),
-      );
-      return;
-    }
 
-    try {
-      final response = await http.post(
-        Uri.parse('https://green-table-ni1h.onrender.com/api/food/add'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode({
-          'restaurantId': restaurantId,
-          'restaurantName': restaurantName,
-          // Here we ensure that foodItems is an array (list) of food names
-          'foodName': nameController
-              .text, // Put the name from the controller as a single item in the list
-          'description': descriptionController.text,
-          'price': double.parse(priceController.text),
-          'quantity': int.parse(quantityController.text),
-          'expiryDate':
-              expiryDateController.text, // Ensure it's in the correct format
-          'category': categoryController.text,
-          'timeOfCooking': DateFormat('yyyy-MM-dd HH:mm')
-              .parse(
-                  '${expiryDateController.text} ${timeOfCookingController.text}')
-              .toIso8601String(),
-        }),
-      );
 
-      if (response.statusCode == 201) {
-        _fetchFoodItems(); // Refresh the list of food items
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Food item added successfully!')),
-        );
-      } else {
-        // Log error details from response body
-        debugPrint('Failed to add food item: ${response.body}');
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to add food item')));
-      }
-    } catch (e) {
-      debugPrint('Error adding food item: $e');
+// Update the _addFoodItem method
+Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
+  try {
+    // Validate numeric inputs first
+    final price = double.tryParse(priceController.text.trim()) ?? 0.0;
+    final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
+    
+    final response = await http.post(
+      Uri.parse('${Config.baseUrl}/food/add'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': 'Bearer ${(await SharedPreferences.getInstance()).getString('token')}'
+      },      
+      // Update the API request body to:
+      body: jsonEncode({
+        'restaurantId': restaurantId,
+        'foodName': nameController.text.trim(),
+        'price': price,
+        'quantity': quantity,
+        'category': categoryController.text.trim(),
+        'timeOfCooking': '${DateFormat('yyyy-MM-ddTHH:mm:ss').format(
+          DateFormat('yyyy-MM-dd HH:mm').parse(
+            '${expiryDateController.text} ${timeOfCookingController.text}'
+          )
+        )}Z',
+        'expiryDate': DateFormat('yyyy-MM-ddTHH:mm:ss').parse(
+          '${expiryDateController.text}T23:59:59'
+        ).toIso8601String(),
+      }),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      _fetchFoodItems();
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred while adding food item')));
+        SnackBar(content: Text('Food item added successfully!')),
+      );
+    } else {
+      // Log error details from response body
+      debugPrint('Failed to add food item: ${response.body}');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to add food item')));
     }
+  } catch (e) {
+    debugPrint('Error adding food item: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred while adding food item')));
   }
+}
 
   Future<void> _saveFoodItemsToLocal(
       List<Map<String, dynamic>> foodList) async {
@@ -542,7 +534,6 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    // Show DatePicker to select expiry date
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(), // Default to current date
@@ -558,16 +549,17 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   Future<void> _selectTime(BuildContext context) async {
-    // Show TimePicker to select time of cooking
     TimeOfDay? pickedTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(), // Default to current time
+      initialTime: TimeOfDay.now(),
     );
     if (pickedTime != null) {
-      // Format the selected time to HH:mm format
-      String formattedTime = pickedTime.format(context);
-      timeOfCookingController.text =
-          formattedTime; // Set the selected time in the controller
+      final now = DateTime.now();
+      final dt = DateTime(
+        now.year, now.month, now.day, 
+        pickedTime.hour, pickedTime.minute
+      );
+      timeOfCookingController.text = DateFormat('HH:mm').format(dt);
     }
   }
 
@@ -631,7 +623,6 @@ class _OrdersPageState extends State<OrdersPage> {
                         timeOfCookingController, "Time of Cooking"),
                     _buildInputField(
                         categoryController, "Category", Icons.category),
-
                     ElevatedButton(
                       onPressed: _addFoodItemHandler,
                       style: ElevatedButton.styleFrom(
@@ -653,7 +644,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
               const SizedBox(height: 20),
               Text(
-                "Past Listings done by $restaurantId",
+                "Past Listings done by $restaurantName",
                 style:
                     const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
@@ -744,17 +735,17 @@ class _OrdersPageState extends State<OrdersPage> {
       final double price = double.parse(priceController.text);
       final int quantity = int.parse(quantityController.text);
 
+      // Update the food item map in _addFoodItemHandler
       Map<String, dynamic> newFoodItem = {
-        'foodName': (String name) => nameController.text,
+        'restaurantId': restaurantId,
+        'foodName': nameController.text.trim(),
         'description': descriptionController.text,
-        'category': categoryController.text,
         'price': price,
         'quantity': quantity,
         'expiryDate': expiryDateController.text,
-        'timeOfCooking': DateFormat('yyyy-MM-dd HH:mm')
-            .parse(
-                '${expiryDateController.text} ${timeOfCookingController.text}')
-            .toIso8601String(),
+        'timeOfCooking': timeOfCookingController.text,
+        'category': categoryController.text.trim(),
+        'isAvailable': true
       };
 
       _addFoodItem(newFoodItem);

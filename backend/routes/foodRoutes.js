@@ -6,18 +6,15 @@ const { body, param, validationResult } = require('express-validator');
 // Add auth middleware import
 const { auth } = require('../middleware/auth');
 
-router.post('/add', 
+router.post('/add',
   [
     body('restaurantId').isMongoId(),
     body('foodName').trim().notEmpty(),
     body('price').isFloat({ gt: 0 }),
     body('quantity').isInt({ min: 1 }),
-    body('dietaryType').isIn(['vegetarian', 'non-vegetarian', 'vegan', 'jain']),
-    body('servesPeople').isInt({ min: 1 }),
-    body('foodCategory').notEmpty(),
-    body('ingredients').isArray({ min: 1 }),
-    body('timeOfCooking').isISO8601(),
-    body('expiryDate').isISO8601()
+    body('expiryDate').isISO8601().withMessage('Invalid expiry date format'),
+    body('timeOfCooking').isISO8601().withMessage('Invalid cooking time format'),
+    body('category').notEmpty().withMessage('Category is required')
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -28,14 +25,14 @@ router.post('/add',
   },
   foodController.createFoodItem
 );
-router.post('/claim', 
+router.post('/claim',
   auth,
   body('foodId').isMongoId(),
   body('quantity').isInt({ min: 1 }),
   foodController.claimFoodItem
 );
 router.get('/available', foodController.getLiveFoodItems);
-router.get('/:restaurantId', 
+router.get('/:restaurantId',
   auth,
   param('restaurantId').isMongoId(),
   foodController.getFoodItemsByRestaurant
