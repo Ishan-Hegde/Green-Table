@@ -24,4 +24,12 @@ const foodSchema = new mongoose.Schema({
   }],
 });
 
+// Add pre-save hook to auto-update isAvailable
+foodSchema.pre('save', function(next) {
+    if (this.quantity <= 0) {
+        this.isAvailable = false;
+    }
+    next();
+});
+
 module.exports = mongoose.model('Food', foodSchema);

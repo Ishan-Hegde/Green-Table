@@ -31,7 +31,7 @@ router.post('/claim',
   body('quantity').isInt({ min: 1 }),
   foodController.claimFoodItem
 );
-router.get('/available', foodController.getLiveFoodItems);
+router.get('/available', foodController.getAvailableFoodListings);
 router.get('/:restaurantId',
   auth,
   param('restaurantId').isMongoId(),

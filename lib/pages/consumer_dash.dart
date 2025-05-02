@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, library_prefixes, avoid_print, unnecessary_nullable_for_final_variable_declarations
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_build_context_synchronously, library_prefixes, avoid_print, unnecessary_nullable_for_final_variable_declarations, unused_element
 
 import 'dart:convert';
 
@@ -352,14 +352,13 @@ class FoodForGoodPage extends StatefulWidget {
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
   final List<Map<String, dynamic>> _restaurants =
       []; // This will be populated from the backend
-  List<Map<String, dynamic>> _filteredRestaurants = [];
   late IO.Socket socket;
 
   @override
   void initState() {
     super.initState();
     _initializeSocket();
-    _fetchRestaurants(); // Fetch restaurants when initializing
+    _fetchRestaurants();
   }
 
   void _initializeSocket() {
@@ -407,7 +406,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
 
   Future<void> _fetchRestaurants() async {
     final response = await http.get(Uri.parse(
-        'https://green-table-ni1h.onrender.com/api/restaurant/all'));
+        'https://green-table-ni1h.onrender.com/api/restaurant/live'));
 
     if (response.statusCode == 200) {
       final List<dynamic> restaurants = jsonDecode(response.body);
@@ -419,8 +418,7 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
           'restaurantName': restaurant['name'],
           'foodItems': restaurant['foodItems'] ?? [], // Initialize with empty array if null
         }));
-        _filteredRestaurants =
-            List.from(_restaurants); // Initialize filtered restaurants
+// Initialize filtered restaurants
       });
     } else {
       print('Failed to load restaurants');
@@ -462,7 +460,6 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                 'timeOfCooking': item['timeOfCooking'],
               });
             }
-            _filteredRestaurants = List.from(_restaurants);
           }
         });
       } else {
@@ -492,16 +489,10 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
   void _filterSearchResults(String query) {
     if (query.isEmpty) {
       setState(() {
-        _filteredRestaurants =
-            List.from(_restaurants); // Show all when query is empty
+// Show all when query is empty
       });
     } else {
       setState(() {
-        _filteredRestaurants = _restaurants
-            .where((restaurant) => restaurant['restaurantName']!
-                .toLowerCase()
-                .contains(query.toLowerCase()))
-            .toList();
       });
     }
   }
@@ -516,75 +507,63 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-      child: Column(
-        children: [
-          // Search bar
-          Container(
+      child: ListView.builder(
+        itemCount: _restaurants.length,
+        itemBuilder: (context, index) {
+          final restaurant = _restaurants[index];
+          return Card(
             margin: const EdgeInsets.only(bottom: 10.0),
-            child: TextField(
-              onChanged: _filterSearchResults,
-              decoration: const InputDecoration(
-                labelText: "Search Restaurant",
-                hintText: "Enter restaurant name",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
+            child: ExpansionTile(
+              title: Text(
+                restaurant['restaurantName'] ?? 'Unknown Restaurant',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
                 ),
               ),
-            ),
-          ),
-          // List of restaurants with shadow effect
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color.fromARGB(255, 15, 15, 15)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF00B200).withOpacity(0.3)
-                        : Colors.black.withOpacity(0.2),
-                    spreadRadius: 3,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: ListView.builder(
-                itemCount: _filteredRestaurants.length,
-                itemBuilder: (context, index) {
-                  final restaurant = _filteredRestaurants[index];
-                  return GestureDetector(
-                    onTap: () => _showFoodListings(
-                        restaurant), // Show food listings when tapped
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListTile(
-                          leading: Image.asset(
-                            'assets/images/pizza.png',
-                            height: 50,
-                            width: 50,
-                          ),
-                          title: Text(
-                            restaurant['name'] ?? 'Unnamed Restaurant',
-                            style: TextStyle(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black),
-                          ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      if (restaurant['foodItems'] != null)
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: restaurant['foodItems'].length,
+                          itemBuilder: (context, foodIndex) {
+                            final foodItem = restaurant['foodItems'][foodIndex];
+                            return ListTile(
+                              title: Text(foodItem['name'] ?? 'Unnamed Item'),
+                              subtitle: Text(
+                                foodItem['description'] ?? 'No description',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: Text(
+                                '₹${foodItem['price']?.toStringAsFixed(2) ?? '0.00'}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              leading: const Icon(Icons.fastfood),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      if (restaurant['foodItems'] == null || 
+                          restaurant['foodItems'].isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text('No food items available'),
+                        )
+                    ],
+                  ),
+                )
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -606,7 +585,6 @@ class FoodListingsWidget extends StatelessWidget {
     );
   }
 
-  // ignore: unused_element
   void _placeOrder() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');

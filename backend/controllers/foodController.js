@@ -47,25 +47,39 @@ exports.createFoodItem = async (req, res) => {
 };
 
 exports.getLiveFoodItems = async (req, res) => {
-    try {
-        const foodItems = await Food.find({
-            quantity: { $gt: 0 },
-            expiryDate: { $gt: new Date() }
-        }).populate('restaurantId', 'name address');
+  try {
+    const currentDate = new Date();
+    
+    const foodItems = await Food.find({
+      quantity: { $gt: 0 },
+      expiryDate: { $gt: currentDate },
+      // timeOfCooking: { $lt: currentDate },  // Removed time comparison
+      isAvailable: true
+    })
+    .select('_id restaurantId restaurantName foodName description price quantity expiryDate timeOfCooking category')
+    .lean();
 
-        res.json(foodItems);
-    } catch (error) {
-        res.status(500).json({
-            error: 'SERVER_ERROR',
-            message: 'Failed to retrieve food items'
-        });
-    }
+    res.json({
+      status: 'success',
+      results: foodItems.length,
+      data: foodItems
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to retrieve food items',
+      systemMessage: error.message
+    });
+  }
 };
 
 // Get Available Food Listings
 exports.getAvailableFoodListings = async (req, res) => {
     try {
-        const foodListings = await Food.find({ quantity: { $gt: 0 } });
+        const foodListings = await Food.find({ 
+            isAvailable: true
+        });
         res.status(200).json({
             status: 'success',
             data: foodListings
@@ -93,7 +107,7 @@ exports.getFoodItemsByRestaurant = async (req, res) => {
 
         const restaurant = await Restaurant.findById(restaurantId);
         if (!restaurant) {
-            logger.error('Restaurant lookup failed', { restaurantId });
+            logger.error('Restaurant lookup failed', { restaurantId: req.params.restaurantId }); // Use param directly
             return res.status(404).json({
                 error: 'RESTAURANT_NOT_FOUND',
                 message: 'No restaurant found with provided ID'
@@ -101,13 +115,15 @@ exports.getFoodItemsByRestaurant = async (req, res) => {
         }
 
         // Convert string ID to ObjectId for comparison
-        if (req.user.role !== 'restaurant' || !req.user.id.equals(restaurant._id.toString())) {
+        if (req.user.role !== 'restaurant' || !req.user.id.equals(new mongoose.Types.ObjectId(restaurant._id))) {
             return res.status(403).json({
                 error: 'UNAUTHORIZED',
                 message: 'You do not own this restaurant'
             });
         }
-        const foodItems = await Food.find({ restaurantId: new mongoose.Types.ObjectId(restaurantId) });
+        const foodItems = await Food.find({ 
+          restaurantId: restaurantId 
+        }).populate('restaurantId', 'name address');
 
         if (!foodItems || foodItems.length === 0) {
             return res.status(404).json({
@@ -188,25 +204,6 @@ exports.claimFoodItem = async (req, res) => {
         res.status(500).json({
             error: 'SERVER_ERROR',
             message: 'Failed to claim food item'
-        });
-    }
-};
-
-// Update getLiveFoodItems to filter available foods
-exports.getLiveFoodItems = async (req, res) => {
-    try {
-        // In getLiveFoodItems
-        const foodItems = await Food.find({
-          quantity: { $gt: 0 },
-          expiryDate: { $gt: new Date() }
-        })
-        .limit(25) // Add pagination
-        .skip((page - 1) * limit);
-        res.json(foodItems);
-    } catch (error) {
-        res.status(500).json({
-            error: 'SERVER_ERROR',
-            message: 'Failed to retrieve food items'
         });
     }
 };

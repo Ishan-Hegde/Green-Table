@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'package:green_table/config.dart';
 import 'package:http/http.dart' as http;
@@ -27,14 +29,18 @@ class FoodListingService {
         headers: {'Content-Type': 'application/json'}
       );
       
+      print('Food Items Response: ${response.statusCode}');  // Add logging
+      
       if (response.statusCode == 200) {
         return (json.decode(response.body) as List)
             .map((i) => FoodItem.fromJson(i))
             .toList();
+      } else {
+        throw Exception('Failed with status: ${response.statusCode}');
       }
-      throw Exception('Failed with status: ${response.statusCode}');
     } catch (e) {
-      throw Exception('Food fetch error: $e');
+      print('Food Items Error: $e');
+      rethrow;
     }
   }
 
