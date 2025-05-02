@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 // Add loyalty program fields
-const userSchema = new Schema({
+const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -23,7 +23,12 @@ const userSchema = new Schema({
     restaurant: { type: Schema.Types.ObjectId, ref: 'Restaurant' },
     rating: Number,
     comment: String
-  }]
+  }],
+  phone: {
+    type: String,
+    required: false,  // Change to false if phone isn't mandatory
+    unique: false     // Remove unique constraint
+  }
 });
 
 module.exports = mongoose.model('User', userSchema);
