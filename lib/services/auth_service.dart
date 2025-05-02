@@ -1,51 +1,51 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static Future<Map<String, dynamic>> loginUser(String email, String password) async {
+  static const String baseUrl = 'https://green-table-ni1h.onrender.com/api/auth';
+  
+  Future<Map<String, dynamic>> registerUser(Map<String, dynamic> userData) async {
     final response = await http.post(
-      Uri.parse('https://green-table-ni1h.onrender.com/api/auth/login'),
-      body: jsonEncode({'email': email, 'password': password}),
+      Uri.parse('$baseUrl/register'),
       headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(userData),
     );
+    
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Registration failed: ${response.body}');
+  }
 
+  Future<Map<String, dynamic>> verifyOTP(String email, String otp) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/verify-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('OTP verification failed: ${response.body}');
+  }
+
+  Future<void> loginUser(String email, String password) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
+    );
+    
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', data['token']);
-      await prefs.setString('userId', data['user']['_id']);
-      await prefs.setString('kycStatus', data['user']['kycStatus']);
-      await prefs.setString('role', data['user']['role']);
-      return data['user'];
+      await SharedPreferences.getInstance().then((prefs) {
+        prefs.setString('token', data['token']);
+        prefs.setString('role', data['role']);
+      });
+      return;
     }
-    throw Exception('Failed to login');
-  }
-
-  static Future<void> uploadKYCDocuments({
-    required List<File> documents,
-    required String docType,
-    required String userId,
-  }) async {
-    final uri = Uri.parse('https://green-table-ni1h.onrender.com/api/kyc/upload');
-    final request = http.MultipartRequest('POST', uri);
-    
-    for (var doc in documents) {
-      request.files.add(await http.MultipartFile.fromPath('documents', doc.path));
-    }
-    
-    request.fields['docType'] = docType;
-    request.fields['userId'] = userId;
-    
-    final response = await request.send();
-    if (response.statusCode != 200) {
-      throw Exception('Failed to upload documents');
-    }
-  }
-
-  static Future<String?> getKYCStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('kycStatus');
+    throw Exception('Login failed: ${response.body}');
   }
 }

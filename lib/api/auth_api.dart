@@ -8,7 +8,7 @@ class AuthAPI {
     required String name,
     required String email,
     required String password,
-    required String role,
+    required String role, required String phone,
   }) async {
     final response = await http.post(
       Uri.parse('${Config.baseUrl}/auth/register'),

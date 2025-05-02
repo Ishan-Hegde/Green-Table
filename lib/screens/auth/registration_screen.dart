@@ -8,6 +8,7 @@ import 'package:green_table/pages/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
+
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
 
@@ -22,9 +23,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 // New controller
   String _selectedRole = 'consumer';
-  bool _isLoading = false;
 
   Future<void> _showOTPDialog() async {
     final otpController = TextEditingController();
@@ -99,14 +100,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   // Modify the existing _register method
-  Future<void> _register() async {
+  Future<void> register() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
       try {
         final response = await AuthAPI.register(
           name: _nameController.text,
           email: _emailController.text,
           password: _passwordController.text,
+          phone: _phoneController.text,
           role: _selectedRole,
         );
 
@@ -239,18 +240,25 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             const SizedBox(height: 25),
                             ElevatedButton(
                               onPressed: () async {
-                                await _register();
+                                if (_formKey.currentState!.validate()) {
+                                  try {
+                                    await AuthAPI.register(
+                                      name: _nameController.text,
+                                      email: _emailController.text,
+                                      password: _passwordController.text,
+                                      role: _selectedRole,
+                                      phone: _phoneController.text // Add phone parameter
+                                    );
+                                    
+                                    await _showOTPDialog();
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(e.toString()))
+                                    );
+                                  }
+                                }
                               },
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00B200),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 120.0, vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10))),
-                              child: _isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text('Register',
-                                      style: TextStyle(fontSize: 16, color: Colors.white)),
+                              child: Text('Register'),
                             ),
                             const SizedBox(height: 10),
                             TextButton(
