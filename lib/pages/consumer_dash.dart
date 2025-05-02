@@ -358,9 +358,9 @@ class FoodForGoodPage extends StatefulWidget {
 }
 
 class _FoodForGoodPageState extends State<FoodForGoodPage> {
-  List<Map<String, dynamic>> _restaurants =
-      []; // This will be populated from the backend
+  List<Map<String, dynamic>> _restaurants = [];
   late IO.Socket socket;
+  final List<Map<String, dynamic>> _cartItems = [];
 
   @override
   void initState() {
@@ -560,10 +560,30 @@ class _FoodForGoodPageState extends State<FoodForGoodPage> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              trailing: Text(
-                                '₹${foodItem['price']?.toStringAsFixed(2) ?? '0.00'}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                              trailing: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _cartItems.contains(foodItem) 
+                                      ? Colors.grey 
+                                      : const Color(0xFF00B200),
+                                  ),
+                                onPressed: () {
+                                  if (!_cartItems.contains(foodItem)) {
+                                    setState(() {
+                                      _cartItems.add(foodItem); // Now using properly declared state
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Claimed ${foodItem['foodName']}'),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                  setState(() {});
+                                },
+                                child: Text(
+                                  _cartItems.contains(foodItem) ? 'Claimed' : 'Claim',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ),
                               leading: const Icon(Icons.fastfood),
                             );
@@ -650,8 +670,12 @@ class FoodListingsWidget extends StatelessWidget {
                   child: ListTile(
                     title: Text(item?['name'] ?? 'Unnamed Item'),
                     subtitle: Text(item?['description'] ?? ''),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.add_shopping_cart),
+                    trailing: TextButton.icon(
+                      icon: Icon(Icons.local_offer),
+                      label: Text('Claim'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Color(0xFF00B200),
+                      ),
                       onPressed: () => _addToCart(item!),
                     ),
                   ),
@@ -833,12 +857,17 @@ class _CartScreenState extends State<CartScreen> {
               itemCount: _cartItems.length,  // Changed from cartItems to _cartItems
               itemBuilder: (context, index) {
                 final item = _cartItems[index];
-                return ListTile(
-                  title: Text(item['foodName'] ?? 'Unnamed Item'),
-                  subtitle: Text('Qty: ${item['quantity']}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _removeFromCart(index),
+                return Dismissible(
+                  key: Key(item['id'].toString()),
+                  onDismissed: (direction) => _removeFromCart(index),
+                  background: Container(color: Colors.red),
+                  child: ListTile(
+                    title: Text(item['name']),
+                    subtitle: Text('₹${item['price']}'),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.remove_circle),
+                      onPressed: () => _removeFromCart(index),
+                    ),
                   ),
                 );
               },
@@ -848,34 +877,12 @@ class _CartScreenState extends State<CartScreen> {
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
               child: const Text('Place Order (OTP will be sent)'),
-              onPressed: () => _placeOrder(context),
+              onPressed: () => _placeOrder(),
             ),
           ),
         ],
       ),
     );
-  }
-
-  void _placeOrder(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    
-    final response = await http.post(
-      Uri.parse('${Config.baseUrl}/orders'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({  // Removed _deliveryAddress reference
-        'items': _cartItems,
-        'status': 'pending'
-      }),
-    );
-
-    if (response.statusCode == 201) {
-      final otp = _generateOTP();
-      _showOTPDialog(context, otp);
-    }
   }
 
   String _generateOTP() => (Random().nextInt(9000) + 1000).toString();
@@ -894,5 +901,72 @@ class _CartScreenState extends State<CartScreen> {
         ],
       ),
     );
+  }
+
+  void _checkout() {
+    if (_cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your cart is empty')),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm Order (${_cartItems.length} items)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Total claimed items: ${_cartItems.length}'),
+            SizedBox(height: 16),
+            Text('Are you sure you want to claim these items?'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF00B200),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _placeOrder();
+            },
+            child: Text('Confirm Claim'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _placeOrder() async {
+    try {
+      // Implement your order placement API call here
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/orders'),
+        body: json.encode({
+          'items': _cartItems.map((item) => item['id']).toList(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order placed successfully!')),
+        );
+        setState(() => _cartItems.clear());
+        Navigator.pop(context); // Close cart screen
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to place order: $e')),
+      );
+    }
   }
 }
