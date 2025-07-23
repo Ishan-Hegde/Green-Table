@@ -7,8 +7,6 @@ import 'package:green_table/pages/login_page.dart';
 // ignore: unused_import
 import 'package:shared_preferences/shared_preferences.dart';
 
-
-
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
 
@@ -30,7 +28,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Future<void> _showOTPDialog() async {
     final otpController = TextEditingController();
     bool _isVerified = false;
-    
+
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -53,7 +51,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 children: [
                   Icon(Icons.check_circle, color: Colors.green, size: 50),
                   SizedBox(height: 16),
-                  Text('OTP Verified Successfully!', style: TextStyle(fontSize: 18)),
+                  Text('OTP Verified Successfully!',
+                      style: TextStyle(fontSize: 18)),
                 ],
               ),
           ],
@@ -72,7 +71,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('username', _emailController.text);
                     await prefs.setString('password', _passwordController.text);
-                    
+
                     setState(() {
                       _isVerified = true;
                       _otpVerified = true;
@@ -83,12 +82,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     });
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(response['message'] ?? 'OTP verification failed')),
+                      SnackBar(
+                          content: Text(response['message'] ??
+                              'OTP verification failed')),
                     );
                   }
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Verification error: ${e.toString()}')),
+                    SnackBar(
+                        content: Text('Verification error: ${e.toString()}')),
                   );
                 }
               },
@@ -114,9 +116,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         if (response['success']) {
           await _showOTPDialog();
         } else {
-          final errorMessage = response['error']?['message'] ?? 
-                          response['message'] ?? 
-                          'Registration failed';
+          final errorMessage = response['error']?['message'] ??
+              response['message'] ??
+              'Registration failed';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMessage)),
           );
@@ -164,10 +166,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       ),
                       const SizedBox(height: 35),
                       ToggleButtons(
-                        isSelected: [_selectedRole == 'consumer', _selectedRole == 'restaurant'],
+                        isSelected: [
+                          _selectedRole == 'consumer',
+                          _selectedRole == 'restaurant'
+                        ],
                         onPressed: (int index) {
                           setState(() {
-                            _selectedRole = index == 0 ? 'consumer' : 'restaurant';
+                            _selectedRole =
+                                index == 0 ? 'consumer' : 'restaurant';
                           });
                         },
                         color: Colors.black,
@@ -175,7 +181,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         fillColor: const Color(0xFF00B200),
                         borderColor: const Color(0xFF00B200),
                         selectedBorderColor: const Color(0xFF00B200),
-                        borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10.0)),
                         children: const [
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -196,7 +203,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               controller: _nameController,
                               decoration: InputDecoration(
                                 labelText: 'Name',
-                                prefixIcon: const Icon(Icons.person, color: Color(0xFF00B200)),
+                                prefixIcon: const Icon(Icons.person,
+                                    color: Color(0xFF00B200)),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -211,7 +219,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               controller: _emailController,
                               decoration: InputDecoration(
                                 labelText: 'Email',
-                                prefixIcon: const Icon(Icons.email, color: Color(0xFF00B200)),
+                                prefixIcon: const Icon(Icons.email,
+                                    color: Color(0xFF00B200)),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -228,14 +237,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               obscureText: true,
                               decoration: InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock, color: Color(0xFF00B200)),
+                                prefixIcon: const Icon(Icons.lock,
+                                    color: Color(0xFF00B200)),
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10)),
                                 contentPadding: const EdgeInsets.symmetric(
                                     vertical: 12, horizontal: 16),
                               ),
-                              validator: (value) =>
-                                  value!.isEmpty ? 'Password is required' : null,
+                              validator: (value) => value!.isEmpty
+                                  ? 'Password is required'
+                                  : null,
                             ),
                             const SizedBox(height: 25),
                             ElevatedButton(
@@ -247,31 +258,32 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                       email: _emailController.text,
                                       password: _passwordController.text,
                                       role: _selectedRole,
-                                      phone: _phoneController.text // Add phone parameter
+                                      phone: _phoneController.text,
                                     );
-                                    
+
                                     await _showOTPDialog();
                                   } catch (e) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(e.toString()))
+                                      SnackBar(content: Text(e.toString())),
                                     );
                                   }
                                 }
                               },
-                              child: Text('Register'),
-                            ),
-                            const SizedBox(height: 10),
-                            TextButton(
-                              onPressed: () => Navigator.pushNamed(context, '/login'),
-                              child: Text(
-                                'Already have an account? Click here to log in',
-                                style: TextStyle(
-                                  color: _otpVerified ? Colors.green : Colors.grey[800],
-                                  fontSize: 12,
-                                  fontWeight: _otpVerified ? FontWeight.bold : FontWeight.normal,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00B200),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 120.0, vertical: 17),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
+                              child: const Text(
+                                'Register',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white),
+                              ),
                             ),
+
                             // Add this widget above the login button
                             if (_otpVerified)
                               Padding(
@@ -279,12 +291,53 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 child: Text(
                                   '✓ OTP Verified! Please login below',
                                   style: TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold
-                                  ),
+                                      color: Colors.green,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
+                            const SizedBox(height: 25),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Already have an account? ',
+                                  style: TextStyle(
+                                    color: Colors.grey[800],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () =>
+                                      Navigator.pushNamed(context, '/login'),
+                                  child: Stack(
+                                    alignment: Alignment.bottomCenter,
+                                    children: [
+                                      Text(
+                                        'Login',
+                                        style: TextStyle(
+                                          color: const Color.fromARGB(255, 32, 81, 35),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          decoration: TextDecoration
+                                              .none, // Remove default underline
+                                        ),
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        child: Container(
+                                          height: 1.5,
+                                          width:
+                                              34, // Adjust width to match text
+                                          color: Colors
+                                              .green[900], // Darker underline
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
