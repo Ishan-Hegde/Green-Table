@@ -158,7 +158,7 @@ class RingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint glowPaint = Paint()
-      ..color = const Color(0xFF00FF00).withOpacity(0.3)
+      ..color = const Color.fromRGBO(0, 255, 0, 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
@@ -197,7 +197,7 @@ class DBZParticlePainter extends CustomPainter {
 
     // 💨 Energy pulses
     final energyPaint = Paint()
-      ..color = const Color(0xFF00C853).withOpacity(0.25)
+      ..color = Color.fromRGBO(0, 200, 83, 0.25)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -208,7 +208,7 @@ class DBZParticlePainter extends CustomPainter {
 
     // 🌟 Random energy sparks
     final sparkPaint = Paint()
-      ..color = const Color(0xFF00B200).withOpacity(0.1)
+      ..color = Color.fromRGBO(0, 178, 0, 25) // 0.1 opacity = 25 in RGBA
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < 60; i++) {
