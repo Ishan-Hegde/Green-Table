@@ -1,151 +1,130 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
-// ignore: unused_import
 import 'package:green_table/screens/auth/registration_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late final List<AnimationController> _animationControllers = [];
-  
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _rotationController;
+  late final AnimationController _logoController;
+  late final AnimationController _textFadeController;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 4), () {
+
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
+
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..forward();
+
+    _textFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    Future.delayed(const Duration(seconds: 3), () {
+      _textFadeController.forward();
+    });
+
+    Future.delayed(const Duration(seconds: 4), () {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => RegistrationScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          transitionDuration: Duration(milliseconds: 1000),
+          pageBuilder: (_, __, ___) => const RegistrationScreen(),
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 1000),
         ),
       );
     });
   }
 
   @override
+  void dispose() {
+    _rotationController.dispose();
+    _logoController.dispose();
+    _textFadeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          AnimatedContainer(
-            duration: Duration(seconds: 2),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color.fromARGB(255, 138, 237, 138), Colors.white],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
+          _buildAnimatedBackground(),
           Center(
-            child: Stack(
-              alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Animated particles
-                _buildParticleAnimation(0.0),
-                _buildParticleAnimation(0.5),
-                _buildParticleAnimation(1.0),
-                TweenAnimationBuilder(
-                  tween: Tween<double>(begin: 1.2, end: 1.0),
-                  duration: Duration(seconds: 2),
-                  curve: Curves.easeInOut,
-                  builder: (context, value, child) {
-                    return Transform.scale(
-                      scale: value,
-                      child: Hero(
-                        tag: 'app-logo',
-                        child: Stack(
-                          children: [
-                            // Animated border
-                            _buildAnimatedBorder(),
-                            // Main logo
-                            TweenAnimationBuilder(
-                              tween: Tween<double>(begin: 0, end: 1),
-                              duration: Duration(seconds: 1),
-                              builder: (context, value, child) {
-                                return Opacity(
-                                  opacity: value,
-                                  child: Transform.scale(
-                                    scale: value,
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: Image.asset(
-                                'assets/images/green-table-logo.jpg',
-                                width: 200,
-                                height: 200,
-                                fit: BoxFit.contain,
-                              ),
+                RepaintBoundary(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      _buildRotatingRing(),
+                      ScaleTransition(
+                        scale: CurvedAnimation(
+                            parent: _logoController, curve: Curves.elasticOut),
+                        child: Hero(
+                          tag: 'app-logo',
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/green-table-logo-1.png',
+                              width: 210, // Adjust as needed
+                              height: 210,
+                              fit: BoxFit
+                                  .cover, // ensures the image fills the oval
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FadeTransition(
+                  opacity: _textFadeController,
+                  child: Text(
+                    "Turning Leftovers into Lifelines",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.green.shade800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                 ),
               ],
-            ),
-          ),
-          Positioned(
-            bottom: 50,
-            left: 0,
-            right: 0,
-            child: AnimatedOpacity(
-              opacity: 1.0,
-              duration: Duration(seconds: 1),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (index) => 
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 500),
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF00B200).withOpacity(0.5 + index * 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  )
-                ),
-              ),
             ),
           ),
         ],
       ),
     );
   }
-// Add these new methods
-  Widget _buildParticleAnimation(double delay) {
-    final controller = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: 3),
-    )..repeat();
-    _animationControllers.add(controller);
 
-    return Positioned.fill(
+  Widget _buildRotatingRing() {
+    return SizedBox(
+      width: 240, // Increased from 180
+      height: 240, // Increased from 180
       child: AnimatedBuilder(
-        animation: controller,
+        animation: _rotationController,
         builder: (context, child) {
           return Transform.rotate(
-            angle: controller.value * 2 * 3.14,
+            angle: _rotationController.value * 2 * pi,
             child: CustomPaint(
-              painter: _ParticlePainter(),
+              painter: RingPainter(),
             ),
           );
         },
@@ -153,49 +132,64 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _buildAnimatedBorder() {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: Duration(seconds: 2),
-      builder: (context, value, child) {
-        return CircularProgressIndicator(
-          value: value,
-          strokeWidth: 2,
-          color: Color(0xFF00B200).withOpacity(0.5),
-        );
-      },
+  Widget _buildAnimatedBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFA8E6A3), Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: CustomPaint(
+        painter: ParticlePainter(),
+        child: const SizedBox.expand(),
+      ),
     );
-  }
-
-  @override
-  void dispose() {
-    for (final controller in _animationControllers) {
-      controller.dispose();
-    }
-    super.dispose();
   }
 }
 
-class _ParticlePainter extends CustomPainter {
+class RingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Color(0xFF00B200).withOpacity(0.3)
+    final Paint glowPaint = Paint()
+      ..color = const Color(0xFF00B200).withOpacity(0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+    final Paint ringPaint = Paint()
+      ..color = const Color(0xFF00B200)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    canvas.drawCircle(size.center(Offset.zero), size.width / 2, glowPaint);
+    canvas.drawCircle(size.center(Offset.zero), size.width / 2, ringPaint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class ParticlePainter extends CustomPainter {
+  final Random random = Random();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = const Color(0xFF00B200).withOpacity(0.15)
       ..style = PaintingStyle.fill;
 
-    final random = Random();
-    for (var i = 0; i < 15; i++) {
-      canvas.drawCircle(
-        Offset(
-          random.nextDouble() * size.width,
-          random.nextDouble() * size.height,
-        ),
-        random.nextDouble() * 4,
-        paint,
+    for (int i = 0; i < 30; i++) {
+      final offset = Offset(
+        random.nextDouble() * size.width,
+        random.nextDouble() * size.height,
       );
+      final radius = random.nextDouble() * 3 + 1;
+      canvas.drawCircle(offset, radius, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }

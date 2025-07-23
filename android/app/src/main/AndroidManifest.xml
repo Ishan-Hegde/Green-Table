@@ -7,7 +7,7 @@
 
 
     <application
-        android:label="green_table"
+        android:label="Green Table"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
