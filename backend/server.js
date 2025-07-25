@@ -14,10 +14,20 @@ const cookieParser = require('cookie-parser');
 const app = express();
 
 app.use(cors({
-  origin: ['https://green-table-ni1h.onrender.com', 'http://localhost:3000', 'http://localhost:5000'],
+  origin: (origin, callback) => {
+    // Allow requests from localhost during development
+    if (!origin || origin.startsWith('http://localhost')) {
+      callback(null, true);
+    } else if (origin === 'https://green-table-ni1h.onrender.com') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }));
+
 
 app.use(cookieParser());
 
