@@ -1,197 +1,294 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
-// ignore: unused_import
 import 'package:green_table/screens/auth/registration_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late final List<AnimationController> _animationControllers = [];
-  
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _rotationController;
+  late final AnimationController _logoController;
+  late final AnimationController _textFadeController;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 4), () {
+
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..forward();
+
+    _textFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+
+    Future.delayed(const Duration(seconds: 3), () {
+      _textFadeController.forward();
+    });
+
+    Future.delayed(const Duration(seconds: 6), () {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => RegistrationScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          transitionDuration: Duration(milliseconds: 1000),
+          pageBuilder: (_, __, ___) => const RegistrationScreen(),
+          transitionsBuilder: (_, animation, __, child) => FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+          transitionDuration: const Duration(milliseconds: 1000),
         ),
       );
     });
   }
 
   @override
+  void dispose() {
+    _rotationController.dispose();
+    _logoController.dispose();
+    _textFadeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          AnimatedContainer(
-            duration: Duration(seconds: 2),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color.fromARGB(255, 138, 237, 138), Colors.white],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
+          const AnimatedDBZParticles(),
           Center(
-            child: Stack(
-              alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Animated particles
-                _buildParticleAnimation(0.0),
-                _buildParticleAnimation(0.5),
-                _buildParticleAnimation(1.0),
-                TweenAnimationBuilder(
-                  tween: Tween<double>(begin: 1.2, end: 1.0),
-                  duration: Duration(seconds: 2),
-                  curve: Curves.easeInOut,
-                  builder: (context, value, child) {
-                    return Transform.scale(
-                      scale: value,
-                      child: Hero(
-                        tag: 'app-logo',
-                        child: Stack(
-                          children: [
-                            // Animated border
-                            _buildAnimatedBorder(),
-                            // Main logo
-                            TweenAnimationBuilder(
-                              tween: Tween<double>(begin: 0, end: 1),
-                              duration: Duration(seconds: 1),
-                              builder: (context, value, child) {
-                                return Opacity(
-                                  opacity: value,
-                                  child: Transform.scale(
-                                    scale: value,
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: Image.asset(
-                                'assets/images/green-table-logo.jpg',
-                                width: 200,
-                                height: 200,
-                                fit: BoxFit.contain,
-                              ),
+                RepaintBoundary(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      _buildRotatingRing(),
+                      ScaleTransition(
+                        scale: CurvedAnimation(
+                          parent: _logoController,
+                          curve: Curves.elasticOut,
+                        ),
+                        child: Hero(
+                          tag: 'app-logo',
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/green-table-logo-1.png',
+                              width: 210,
+                              height: 210,
+                              fit: BoxFit.cover,
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 60),
+                FadeTransition(
+                  opacity: _textFadeController,
+                  child: const Text(
+                    "Turning Leftovers into Lifelines",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                 ),
               ],
-            ),
-          ),
-          Positioned(
-            bottom: 50,
-            left: 0,
-            right: 0,
-            child: AnimatedOpacity(
-              opacity: 1.0,
-              duration: Duration(seconds: 1),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (index) => 
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 500),
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF00B200).withOpacity(0.5 + index * 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  )
-                ),
-              ),
             ),
           ),
         ],
       ),
     );
   }
-// Add these new methods
-  Widget _buildParticleAnimation(double delay) {
-    final controller = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: 3),
-    )..repeat();
-    _animationControllers.add(controller);
 
-    return Positioned.fill(
+  Widget _buildRotatingRing() {
+    return SizedBox(
+      width: 240,
+      height: 240,
       child: AnimatedBuilder(
-        animation: controller,
+        animation: _rotationController,
         builder: (context, child) {
           return Transform.rotate(
-            angle: controller.value * 2 * 3.14,
+            angle: _rotationController.value * 2 * pi,
             child: CustomPaint(
-              painter: _ParticlePainter(),
+              painter: RingPainter(),
             ),
           );
         },
       ),
     );
   }
+}
 
-  Widget _buildAnimatedBorder() {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: Duration(seconds: 2),
-      builder: (context, value, child) {
-        return CircularProgressIndicator(
-          value: value,
-          strokeWidth: 2,
-          color: Color(0xFF00B200).withOpacity(0.5),
-        );
-      },
-    );
+class RingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint glowPaint = Paint()
+      ..color = const Color.fromRGBO(0, 255, 0, 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+    final Paint ringPaint = Paint()
+      ..color = const Color(0xFF00FF00)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    canvas.drawCircle(size.center(Offset.zero), size.width / 1.5, glowPaint);
+    canvas.drawCircle(size.center(Offset.zero), size.width / 1.5, ringPaint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class AnimatedDBZParticles extends StatefulWidget {
+  const AnimatedDBZParticles({super.key});
+
+  @override
+  State<AnimatedDBZParticles> createState() => _AnimatedDBZParticlesState();
+}
+
+class _AnimatedDBZParticlesState extends State<AnimatedDBZParticles>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late List<_Particle> particles;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+
+    particles = List.generate(60, (_) => _Particle.random());
+
+    _controller.addListener(() {
+      setState(() {
+        for (var p in particles) {
+          p.update();
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
-    for (final controller in _animationControllers) {
-      controller.dispose();
-    }
+    _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF0C1E12),
+            Color(0xFF122F1E),
+            Color(0xFF1B3B2B),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: CustomPaint(
+        painter: _AnimatedParticlePainter(particles),
+        child: const SizedBox.expand(),
+      ),
+    );
   }
 }
 
-class _ParticlePainter extends CustomPainter {
+class _Particle {
+  Offset position;
+  Offset velocity;
+  double radius;
+
+  _Particle(this.position, this.velocity, this.radius);
+
+  static _Particle random() {
+    final rand = Random();
+    return _Particle(
+      Offset(rand.nextDouble() * 400, rand.nextDouble() * 800),
+      Offset(rand.nextDouble() * 1 - 0.5, rand.nextDouble() * 1 - 0.5),
+      rand.nextDouble() * 3 + 1,
+    );
+  }
+
+  void update() {
+    position += velocity;
+
+    // Simple bounds check to bounce around within screen space
+    if (position.dx < 0 || position.dx > 400) velocity = Offset(-velocity.dx, velocity.dy);
+    if (position.dy < 0 || position.dy > 800) velocity = Offset(velocity.dx, -velocity.dy);
+  }
+}
+
+class _AnimatedParticlePainter extends CustomPainter {
+  final List<_Particle> particles;
+
+  _AnimatedParticlePainter(this.particles);
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Color(0xFF00B200).withOpacity(0.3)
+    final center = size.center(Offset.zero);
+
+    final glowPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [const Color(0xFF00FF00), const Color(0x0000FF00)],
+        stops: [0.0, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: size.width / 2));
+
+    canvas.drawCircle(center, size.width / 2, glowPaint);
+
+    final energyPaint = Paint()
+      ..color = const Color.fromRGBO(0, 200, 83, 0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    for (int i = 0; i < 5; i++) {
+      final radius = size.width * 0.2 + i * 20;
+      canvas.drawCircle(center, radius, energyPaint);
+    }
+
+    final sparkPaint = Paint()
+      ..color = const Color.fromRGBO(0, 178, 0, 0.1)
       ..style = PaintingStyle.fill;
 
-    final random = Random();
-    for (var i = 0; i < 15; i++) {
-      canvas.drawCircle(
-        Offset(
-          random.nextDouble() * size.width,
-          random.nextDouble() * size.height,
-        ),
-        random.nextDouble() * 4,
-        paint,
+    for (var p in particles) {
+      canvas.drawCircle(p.position, p.radius, sparkPaint);
+    }
+
+    final streakPaint = Paint()
+      ..color = const Color(0x8800FF00)
+      ..strokeWidth = 1.0;
+
+    for (int i = 0; i < 8; i++) {
+      final startX = Random().nextDouble() * size.width;
+      final startY = Random().nextDouble() * size.height;
+      canvas.drawLine(
+        Offset(startX, startY),
+        Offset(startX + Random().nextDouble() * 10,
+            startY + Random().nextDouble() * 20),
+        streakPaint,
       );
     }
   }

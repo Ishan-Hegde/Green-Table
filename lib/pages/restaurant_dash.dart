@@ -590,7 +590,7 @@ Future<void> _addFoodItem(Map<String, dynamic> newFoodItem) async {
               // Add New Food Listing Section
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withAlpha(25),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 padding: const EdgeInsets.all(16.0),

@@ -52,7 +52,7 @@ class _MapScreenState extends State<MapScreen> {
         circleId: const CircleId('currentLocationCircle'),
         center: currentLocation,
         radius: 50,
-        fillColor: Colors.blue.withOpacity(0.3),
+        fillColor: Colors.blue.withAlpha(76), // 0.3 * 255 ≈ 76
         strokeColor: Colors.blueAccent,
         strokeWidth: 2,
       );
@@ -83,7 +83,7 @@ class _MapScreenState extends State<MapScreen> {
           circleId: const CircleId('currentLocationCircle'),
           center: currentLocation,
           radius: 50,
-          fillColor: Colors.blue.withOpacity(0.3),
+          fillColor: Colors.blue.withAlpha(76), // 0.3 * 255 ≈ 76
           strokeColor: Colors.blueAccent,
           strokeWidth: 2,
         );
