@@ -16,6 +16,7 @@ const app = express();
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests from localhost during development
+    //tested || now login working for web+app || 25th July
     if (!origin || origin.startsWith('http://localhost')) {
       callback(null, true);
     } else if (origin === 'https://green-table-ni1h.onrender.com') {
