@@ -21,24 +21,24 @@ class _SplashScreenState extends State<SplashScreen>
 
     _rotationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 8),
+      duration: const Duration(seconds: 10),
     )..repeat();
 
     _logoController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2500),
     )..forward();
 
     _textFadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 2000),
     );
 
     Future.delayed(const Duration(seconds: 3), () {
       _textFadeController.forward();
     });
 
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 6), () {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -66,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Stack(
         children: [
-          _buildAnimatedBackground(),
+          const AnimatedDBZParticles(),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -78,7 +78,9 @@ class _SplashScreenState extends State<SplashScreen>
                       _buildRotatingRing(),
                       ScaleTransition(
                         scale: CurvedAnimation(
-                            parent: _logoController, curve: Curves.elasticOut),
+                          parent: _logoController,
+                          curve: Curves.elasticOut,
+                        ),
                         child: Hero(
                           tag: 'app-logo',
                           child: ClipOval(
@@ -94,10 +96,10 @@ class _SplashScreenState extends State<SplashScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 60 ),
+                const SizedBox(height: 60),
                 FadeTransition(
                   opacity: _textFadeController,
-                  child: Text(
+                  child: const Text(
                     "Turning Leftovers into Lifelines",
                     style: TextStyle(
                       fontSize: 20,
@@ -132,26 +134,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-
-  Widget _buildAnimatedBackground() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF0C1E12),
-            Color(0xFF122F1E),
-            Color(0xFF1B3B2B),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: CustomPaint(
-        painter: DBZParticlePainter(),
-        child: const SizedBox.expand(),
-      ),
-    );
-  }
 }
 
 class RingPainter extends CustomPainter {
@@ -176,28 +158,109 @@ class RingPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
-class DBZParticlePainter extends CustomPainter {
-  final Random random = Random();
+class AnimatedDBZParticles extends StatefulWidget {
+  const AnimatedDBZParticles({super.key});
+
+  @override
+  State<AnimatedDBZParticles> createState() => _AnimatedDBZParticlesState();
+}
+
+class _AnimatedDBZParticlesState extends State<AnimatedDBZParticles>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late List<_Particle> particles;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+
+    particles = List.generate(60, (_) => _Particle.random());
+
+    _controller.addListener(() {
+      setState(() {
+        for (var p in particles) {
+          p.update();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF0C1E12),
+            Color(0xFF122F1E),
+            Color(0xFF1B3B2B),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: CustomPaint(
+        painter: _AnimatedParticlePainter(particles),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _Particle {
+  Offset position;
+  Offset velocity;
+  double radius;
+
+  _Particle(this.position, this.velocity, this.radius);
+
+  static _Particle random() {
+    final rand = Random();
+    return _Particle(
+      Offset(rand.nextDouble() * 400, rand.nextDouble() * 800),
+      Offset(rand.nextDouble() * 1 - 0.5, rand.nextDouble() * 1 - 0.5),
+      rand.nextDouble() * 3 + 1,
+    );
+  }
+
+  void update() {
+    position += velocity;
+
+    // Simple bounds check to bounce around within screen space
+    if (position.dx < 0 || position.dx > 400) velocity = Offset(-velocity.dx, velocity.dy);
+    if (position.dy < 0 || position.dy > 800) velocity = Offset(velocity.dx, -velocity.dy);
+  }
+}
+
+class _AnimatedParticlePainter extends CustomPainter {
+  final List<_Particle> particles;
+
+  _AnimatedParticlePainter(this.particles);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
 
-    // ⚡ Glow aura
     final glowPaint = Paint()
       ..shader = RadialGradient(
-        colors: [
-          const Color(0xFF00FF00),
-          const Color(0x0000FF00),
-        ],
+        colors: [const Color(0xFF00FF00), const Color(0x0000FF00)],
         stops: [0.0, 1.0],
       ).createShader(Rect.fromCircle(center: center, radius: size.width / 2));
 
     canvas.drawCircle(center, size.width / 2, glowPaint);
 
-    // 💨 Energy pulses
     final energyPaint = Paint()
-      ..color = Color.fromRGBO(0, 200, 83, 0.25)
+      ..color = const Color.fromRGBO(0, 200, 83, 0.25)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -206,37 +269,30 @@ class DBZParticlePainter extends CustomPainter {
       canvas.drawCircle(center, radius, energyPaint);
     }
 
-    // 🌟 Random energy sparks
     final sparkPaint = Paint()
-      ..color = Color.fromRGBO(0, 178, 0, 25) // 0.1 opacity = 25 in RGBA
+      ..color = const Color.fromRGBO(0, 178, 0, 0.1)
       ..style = PaintingStyle.fill;
 
-    for (int i = 0; i < 60; i++) {
-      final offset = Offset(
-        random.nextDouble() * size.width,
-        random.nextDouble() * size.height,
-      );
-      final radius = random.nextDouble() * 3 + 1;
-      canvas.drawCircle(offset, radius, sparkPaint);
+    for (var p in particles) {
+      canvas.drawCircle(p.position, p.radius, sparkPaint);
     }
 
-    // ⚡ Light streaks
     final streakPaint = Paint()
       ..color = const Color(0x8800FF00)
       ..strokeWidth = 1.0;
 
     for (int i = 0; i < 8; i++) {
-      final startX = random.nextDouble() * size.width;
-      final startY = random.nextDouble() * size.height;
+      final startX = Random().nextDouble() * size.width;
+      final startY = Random().nextDouble() * size.height;
       canvas.drawLine(
         Offset(startX, startY),
-        Offset(startX + random.nextDouble() * 10,
-            startY + random.nextDouble() * 20),
+        Offset(startX + Random().nextDouble() * 10,
+            startY + Random().nextDouble() * 20),
         streakPaint,
       );
     }
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
