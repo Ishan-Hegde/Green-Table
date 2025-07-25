@@ -8,25 +8,23 @@ import 'package:green_table/utils/role_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'package:path_provider/path_provider.dart'; // only used in mobile
-import 'dart:io'; // only used in mobile
+import 'dart:io' show Directory;
+import 'package:path_provider/path_provider.dart'; // Only used on mobile
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (kIsWeb) {
-    // ✅ Web: No directory access needed
+    // ✅ Web: No file directory needed
     await Hive.initFlutter();
   } else {
-    // ✅ Mobile/Desktop: Use path_provider
-    final appDocumentDir = await getApplicationDocumentsDirectory();
-    final hiveDirectory = Directory('${appDocumentDir.path}/hive');
-
-    if (!await hiveDirectory.exists()) {
-      await hiveDirectory.create(recursive: true);
+    // ✅ Mobile: Use path_provider and set Hive directory
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final hiveDir = Directory('${appDocDir.path}/hive');
+    if (!await hiveDir.exists()) {
+      await hiveDir.create(recursive: true);
     }
-
-    await Hive.initFlutter(hiveDirectory.path);
+    await Hive.initFlutter(hiveDir.path);
   }
 
   await Hive.openBox('appSettings');

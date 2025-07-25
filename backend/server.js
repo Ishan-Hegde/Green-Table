@@ -1,4 +1,6 @@
 const express = require('express');
+const cors = require('cors'); // ✅ Import CORS
+require('dotenv').config();   // ✅ Should be before using env variables
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/authRoutes');
 const consumerRoutes = require('./routes/consumerRoutes');
@@ -7,11 +9,16 @@ const orderRoutes = require('./routes/orderRoutes');
 const foodRoutes = require('./routes/foodRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const userRoutes = require('./routes/userRoutes');
-const { initializeSocket } = require('./utils/socketManager'); // Remove this line
-require('dotenv').config();  // This should be at the very top
-const config = require('./config/config');
-const app = express();
 const cookieParser = require('cookie-parser');
+
+const app = express();
+
+app.use(cors({
+  origin: ['https://green-table-ni1h.onrender.com', 'http://localhost:3000', 'http://localhost:5000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+}));
+
 app.use(cookieParser());
 
 // Middleware
@@ -71,7 +78,7 @@ app.use((req, res, next) => {
 
 // Remove the duplicate initializeSocket call at the bottom
 // server.listen(...) remains as the last line
-app.set('io', io); 
+app.set('io', io);
 
 // Add before routes
 app.use((req, res, next) => {
@@ -82,7 +89,7 @@ app.use((req, res, next) => {
 // Add socket connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
-  
+
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
     console.log(`Socket ${socket.id} joined room ${roomId}`);
